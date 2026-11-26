@@ -37,16 +37,18 @@ node scripts/github-project.mjs jlopez1328 jlopez1328/proyecto
 
 El script conserva estados existentes y asigna Todo únicamente a elementos sin estado.
 
-## Credencial de automatización pendiente de entrada manual
+## Credencial de automatización configurada
 
-La variable de repositorio PROJECT_URL está configurada con https://github.com/users/jlopez1328/projects/1. Falta que el propietario introduzca una credencial dedicada en el secreto ADD_TO_PROJECT_PAT. La sesión de GitHub CLI es para trabajo interactivo y no se copia como secreto de Actions.
+La variable de repositorio PROJECT_URL está configurada con https://github.com/users/jlopez1328/projects/1. El propietario guardó ADD_TO_PROJECT_PAT directamente en GitHub Secrets y su funcionamiento se verificó en la [ejecución de automatización](https://github.com/jlopez1328/proyecto/actions/runs/45870188116): la PR #27 se agregó al tablero. El tablero conserva las 15 historias y ahora incluye también esa revisión. La credencial no se leyó ni se guardó en el proyecto. La sesión de GitHub CLI es para trabajo interactivo y no se copia como secreto de Actions.
+
+Para renovar la credencial cuando corresponda:
 
 1. En tu cuenta GitHub, crea un Personal access token (classic) dedicado a NexusStock, con permisos repo (repositorio privado) y project (escritura del tablero) y una expiración elegida por ti; 30 días es el valor recomendado para esta preparación.
 2. Abre [crear secreto de repositorio](https://github.com/jlopez1328/proyecto/settings/secrets/actions/new).
 3. Nombre: ADD_TO_PROJECT_PAT. Pega el token directamente en Secret y guarda. No lo compartas por chat ni lo incluyas en archivos.
 4. Rota la credencial antes de su vencimiento y revócala cuando deje de ser necesaria.
 
-El workflow agrega issues abiertos/reabiertos y PRs abiertas/reabiertas/actualizadas al tablero. La PR #27 incluye una comprobación que informa la falta del secreto sin fallar las verificaciones del sistema. Main contiene la versión inicial del workflow tras la fusión externa de la PR #1; el secreto es necesario para que esa automatización funcione. La incorporación de la PR #27 se puede comprobar con una actualización de su rama cuando esté guardado el secreto. La integración de las mejoras posteriores sigue pendiente de revisión.
+El workflow agrega issues abiertos/reabiertos y PRs abiertas/reabiertas/actualizadas al tablero. La PR #27 incluye una comprobación que informa si el secreto falta sin fallar las verificaciones del sistema. Main contiene la versión inicial del workflow tras la fusión externa de la PR #1. La incorporación automática de la PR #27 ya se comprobó con el secreto guardado. La integración de las mejoras posteriores sigue pendiente de revisión.
 
 GITHUB_TOKEN por sí solo no alcanza Projects. Referencias oficiales: [Actions con Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/automating-projects-using-actions), [acción add-to-project](https://github.com/actions/add-to-project), [GitHub CLI Projects](https://cli.github.com/manual/gh_project).
 
