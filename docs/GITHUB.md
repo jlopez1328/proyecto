@@ -1,75 +1,53 @@
-# Git, ramas, GitHub Actions y Projects
+# GitHub, Actions y tablero Scrum
 
-El código y los archivos de automatización se entregan localmente. Crear un repositorio remoto o un tablero real requiere una cuenta de GitHub autenticada y el repositorio de destino. No se incluyen tokens ni se crean recursos en una cuenta supuesta.
+Repositorio: [jlopez1328/proyecto](https://github.com/jlopez1328/proyecto), conservado como privado.
 
-Destino indicado para esta entrega: **https://github.com/jlopez1328/proyecto.git**. La consulta remota fue rechazada por credenciales inválidas. La publicación y creación del tablero quedan pendientes de conectar GitHub con acceso a ese repositorio. Antes de subir, consulta y conserva su historial remoto; no sobrescribas main ni uses --force.
+## Publicación preparada para revisión
 
-## Estrategia de ramas
+- Rama publicada: `feature/publicacion-nexusstock`, basada en el historial remoto existente.
+- Solicitud de revisión: [PR #1](https://github.com/jlopez1328/proyecto/pull/1), abierta hacia main y sin fusionar.
+- Los seis archivos originales del repositorio se conservan sin cambios. La versión local recibida sigue en original/ y en la rama local anterior feature/gestion-comercial.
+- No se publican .env, node_modules, bases locales, credenciales ni archivos de pruebas temporales.
+- GitHub CLI quedó autenticado como jlopez1328 en el almacén seguro del sistema, con acceso al repositorio y a Projects. Ninguna credencial se incluye en el código.
 
-Si recibiste solamente el ZIP, el archivo no contiene metadatos .git ni historial. Inicializa tu repositorio antes de publicarlo:
-
-```powershell
-git init -b main
-git add .
-git commit -m "feat: sistema de gestion comercial NexusStock"
-git switch -c feature/gestion-comercial
-```
-
-Configura tu nombre/correo con git config si Git aún no conoce tu identidad. En la carpeta de trabajo entregada, Git ya conserva el commit original y la rama de implementación.
-
-- main: versiones aceptadas.
-- develop: integración del equipo.
-- feature/gestion-comercial: implementación inicial; futuras historias usan feature/HU-nombre.
-- fix/descripcion: correcciones verificadas.
-
-La copia original se guarda como commit base. El sistema se desarrolla en su rama y conserva main como referencia de los originales. Una vez aceptado, abre un PR de feature/gestion-comercial a main. Para trabajo posterior crea develop desde main actualizado. Usa commits descriptivos y PRs pequeños vinculados a historias.
-
-## Publicación inicial
-
-Instala GitHub CLI y autentica tu cuenta:
-
-```powershell
-gh auth login
-gh auth status
-```
-
-Desde esta carpeta, con tus commits locales listos:
-
-```powershell
-gh repo create TU_USUARIO/nexusstock --private --source . --remote origin
-git push -u origin main
-git push -u origin feature/gestion-comercial
-gh pr create --base main --head feature/gestion-comercial --title "Sistema de gestión comercial NexusStock" --body "Implementa ventas, compras, inventario y permisos. Incluye pruebas, Swagger y manuales."
-```
-
-Sustituye TU_USUARIO por la cuenta o organización correcta. Si el remoto ya existe, usa `git remote add origin URL_DEL_REPOSITORIO` en lugar de crear uno. No uses --force sobre ramas compartidas. Verifica `git status` y `git remote -v` antes de publicar. `npm run setup` crea archivos .env ignorados; nunca los agregues con -f.
+La rama main remota permanece en su commit original af3210e64fe3692e6c9cd5730bdc2f26a7f3d9cc. La revisión debe completarse antes de fusionar. No uses --force sobre ramas compartidas.
 
 ## GitHub Actions
 
-ci.yml ejecuta instalación reproducible, pruebas de integración con MongoDB temporal, pruebas React, compilación, auditoría de dependencias y adjunta el frontend compilado. Corre en main, develop, feature/**, fix/** y PRs a main/develop. No necesita acceso a tu base de datos ni secretos comerciales.
+NexusStock CI ejecuta instalación reproducible, 11 pruebas de integración sobre MongoDB temporal, 5 pruebas React, compilación, auditoría de dependencias y adjunta el frontend compilado. Las primeras ejecuciones de la rama y PR #1 finalizaron correctamente:
 
-En Settings → Rules → Rulesets configura revisión requerida y el check verify antes de fusionar. Habilita Dependabot para actualizaciones propuestas. El flujo CI no despliega en producción.
+- [CI de la solicitud de revisión](https://github.com/jlopez1328/proyecto/actions/runs/45867492385).
+- [CI de la publicación inicial](https://github.com/jlopez1328/proyecto/actions/runs/45867427413).
 
-## Crear el tablero e importar historias
+Consulta la ejecución más reciente en la pestaña Actions o en los checks de la PR. El flujo no despliega en producción y no requiere credenciales de tu MongoDB.
 
-Con el repositorio remoto creado y GitHub CLI conectado:
+## Tablero Scrum
+
+[NexusStock · Scrum](https://github.com/users/jlopez1328/projects/1) es privado y está enlazado al repositorio. Contiene las 15 historias HU-01 a HU-15, abiertas para revisión y aceptación, con Sprint 1–4, Puntos y estado Todo. No se cierran automáticamente por haber entregado el código.
+
+Vistas: Backlog Scrum (tabla) y Tablero Scrum (columnas). Estados: Todo, In Progress y Done. Mantén los criterios de aceptación de cada historia y registra evidencia antes de moverla a Done. La planificación propuesta está en SCRUM.md; no se presentan reuniones como realizadas.
+
+El importador `scripts/github-project.mjs` permite reutilizar el tablero y las historias sin duplicarlos por título. Define GH_CLI_PATH si gh no aparece en PATH, por ejemplo C:/Program Files/GitHub CLI/gh.exe. Después ejecuta:
 
 ```powershell
-gh auth refresh -s project
-node scripts/github-project.mjs TU_USUARIO TU_USUARIO/nexusstock
+node scripts/github-project.mjs jlopez1328 jlopez1328/proyecto
 ```
 
-El script crea o reutiliza el tablero `NexusStock · Scrum`, lo enlaza al repositorio, añade campos Sprint y Puntos, crea las 15 historias de docs/backlog.json si no existen por título y las agrega al tablero. Los argumentos se pasan directamente a GitHub CLI, sin construir instrucciones de shell. Repetir el script permite continuar tras un error; no cierres historias automáticamente sin revisión.
+El script conserva estados existentes y asigna Todo únicamente a elementos sin estado.
 
-Las historias se publican abiertas para revisar criterios, aunque su implementación esté entregada. El equipo las mueve y cierra tras aceptación. Configura las vistas y automatizaciones de Status descritas en SCRUM.md.
+## Credencial de automatización pendiente de entrada manual
 
-## Automatizar nuevos elementos
+La variable de repositorio PROJECT_URL está configurada con https://github.com/users/jlopez1328/projects/1. Falta que el propietario introduzca una credencial dedicada en el secreto ADD_TO_PROJECT_PAT. La sesión de GitHub CLI es para trabajo interactivo y no se copia como secreto de Actions.
 
-En Settings → Secrets and variables → Actions:
+1. En tu cuenta GitHub, crea un Personal access token (classic) dedicado a NexusStock, con permisos repo (repositorio privado) y project (escritura del tablero) y una expiración elegida por ti; 30 días es el valor recomendado para esta preparación.
+2. Abre [crear secreto de repositorio](https://github.com/jlopez1328/proyecto/settings/secrets/actions/new).
+3. Nombre: ADD_TO_PROJECT_PAT. Pega el token directamente en Secret y guarda. No lo compartas por chat ni lo incluyas en archivos.
+4. Rota la credencial antes de su vencimiento y revócala cuando deje de ser necesaria.
 
-- Variable PROJECT_URL: URL real del tablero creado.
-- Secreto ADD_TO_PROJECT_PAT: token de la cuenta con permisos para escribir ese proyecto y leer el repositorio. Restringe permisos, propietario y expiración; usa un token de servicio administrado por el equipo si corresponde.
+El workflow agrega issues abiertos/reabiertos y PRs abiertas/reabiertas/actualizadas al tablero. Mientras falte el secreto, informa la configuración pendiente sin fallar las comprobaciones del sistema. La automatización de nuevos issues requiere integrar el workflow en main; esta entrega mantiene la PR abierta. La inclusión de la PR existente se puede comprobar con una actualización de su rama cuando esté guardado el secreto.
 
-El workflow project.yml permanece sin ejecutarse mientras PROJECT_URL no esté configurada. Cuando lo esté, agrega issues y PRs abiertos/reabiertos al tablero. El secreto nunca se escribe en archivos. No actives este flujo para contribuciones externas sin revisar la política de permisos de Actions.
+GITHUB_TOKEN por sí solo no alcanza Projects. Referencias oficiales: [Actions con Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/automating-projects-using-actions), [acción add-to-project](https://github.com/actions/add-to-project), [GitHub CLI Projects](https://cli.github.com/manual/gh_project).
 
-Referencias oficiales: [GitHub CLI Projects](https://cli.github.com/manual/gh_project), [agregar elementos automáticamente](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/automating-projects-using-actions).
+## Trabajo posterior
+
+Usa ramas feature/HU-descripcion y fix/descripcion para nuevos cambios. Cuando se acepte esta entrega y se fusione la PR, crea o actualiza develop desde main integrado. Las plantillas de historias, errores y PR ya están incluidas. Puedes habilitar reglas de revisión y checks requeridos según el proceso del equipo; esta publicación no cambia esas políticas ni la visibilidad del repositorio.

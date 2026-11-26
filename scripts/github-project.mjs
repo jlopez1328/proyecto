@@ -1,5 +1,8 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 const args=process.argv.slice(2), owner=args[0], repo=args[1];
 if(!owner||!repo||!/^[-\w]+$/.test(owner)||!/^[-\w.]+\/[-\w.]+$/.test(repo)) {
   console.error('Uso: node scripts/github-project.mjs PROPIETARIO PROPIETARIO/REPOSITORIO');process.exit(1);
@@ -15,17 +18,25 @@ try {
   if(!fields.some(f=>f.name==='Sprint'))gh('project','field-create',String(project.number),'--owner',owner,'--name','Sprint','--data-type','SINGLE_SELECT','--single-select-options','Sprint 1,Sprint 2,Sprint 3,Sprint 4');
   if(!fields.some(f=>f.name==='Puntos'))gh('project','field-create',String(project.number),'--owner',owner,'--name','Puntos','--data-type','NUMBER');
   const allFields=JSON.parse(gh('project','field-list',String(project.number),'--owner',owner,'--format','json')).fields;
-  const sprint=allFields.find(f=>f.name==='Sprint'), points=allFields.find(f=>f.name==='Puntos');
+  const sprint=allFields.find(f=>f.name==='Sprint'), points=allFields.find(f=>f.name==='Puntos'), status=allFields.find(f=>f.name==='Status');
+  const todo=status?.options?.find(o=>o.name==='Todo');
+  if(!todo)throw new Error('El tablero necesita la opción Todo en el campo Status.');
   const backlog=JSON.parse(readFileSync(new URL('../docs/backlog.json',import.meta.url),'utf8'));
   const existing=JSON.parse(gh('issue','list','--repo',repo,'--state','all','--limit','1000','--json','title,url'));
   for(const story of backlog) {
     const name=`[${story.id}] ${story.title}`;
     let url=existing.find(i=>i.title===name)?.url;
-    if(!url)url=gh('issue','create','--repo',repo,'--title',name,'--body',`Historia planificada para Sprint ${story.sprint}. Estimación: ${story.points} puntos.\n\nCriterios de aceptación:\n${story.criteria.map(c=>`- [ ] ${c}`).join('\n')}\n\nRevisar el código y las pruebas antes de marcar Done. Estos issues se importan abiertos para su aceptación por el equipo.`);
+    if(!url) {
+      const bodyPath=join(tmpdir(),`nexusstock-story-${randomUUID()}.md`);
+      writeFileSync(bodyPath,`Historia planificada para Sprint ${story.sprint}. Estimación: ${story.points} puntos.\n\nCriterios de aceptación:\n${story.criteria.map(c=>`- [ ] ${c}`).join('\n')}\n\nRevisar el código y las pruebas antes de marcar Done. Estos issues se importan abiertos para su aceptación por el equipo.`);
+      try {url=gh('issue','create','--repo',repo,'--title',name,'--body-file',bodyPath);} finally {unlinkSync(bodyPath);}
+    }
     const item=JSON.parse(gh('project','item-add',String(project.number),'--owner',owner,'--url',url,'--format','json'));
     gh('project','item-edit','--id',item.id,'--project-id',project.id,'--field-id',points.id,'--number',String(story.points));
     const option=sprint.options.find(o=>o.name===`Sprint ${story.sprint}`);
     gh('project','item-edit','--id',item.id,'--project-id',project.id,'--field-id',sprint.id,'--single-select-option-id',option.id);
+    const current=JSON.parse(gh('project','item-list',String(project.number),'--owner',owner,'--format','json','--limit','1000')).items.find(i=>i.id===item.id);
+    if(!current?.status)gh('project','item-edit','--id',item.id,'--project-id',project.id,'--field-id',status.id,'--single-select-option-id',todo.id);
     console.log(`Preparado ${story.id}`);
   }
   console.log(`Tablero preparado: ${project.url || `https://github.com/users/${owner}/projects/${project.number}`}`);
