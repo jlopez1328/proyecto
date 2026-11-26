@@ -1,0 +1,27 @@
+name: Historia de usuario
+description: Planificar una funcionalidad del sistema
+title: '[HU] '
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: Historia
+      placeholder: Como [rol], quiero [acción] para [beneficio].
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      placeholder: Condiciones observables y verificables.
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Estimación (puntos)
+      options: ['1', '2', '3', '5', '8', '13']
+  - type: textarea
+    id: validation
+    attributes:
+      label: Evidencia y pruebas
