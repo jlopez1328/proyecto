@@ -15,7 +15,7 @@ La cuenta jlopez1328 fusionó la PR #1 desde la web a las 12:27 del 26 de noviem
 
 ## GitHub Actions
 
-NexusStock CI ejecuta instalación reproducible, 11 pruebas de integración sobre MongoDB temporal, 5 pruebas React, compilación, auditoría de dependencias y adjunta el frontend compilado. Las primeras ejecuciones de la rama y PR #1 finalizaron correctamente:
+NexusStock CI ejecuta instalación reproducible, 17 pruebas de integración sobre MongoDB temporal, 10 pruebas React, compilación, auditoría de dependencias y adjunta el frontend compilado. Las primeras ejecuciones de la rama y PR #1 finalizaron correctamente:
 
 - [CI de la solicitud de revisión](https://github.com/jlopez1328/proyecto/actions/runs/45867492385).
 - [CI de la publicación inicial](https://github.com/jlopez1328/proyecto/actions/runs/45867427413).

@@ -28,7 +28,7 @@ Abre [NexusStock](http://localhost:5173) y entra con el administrador que config
 
 ## Módulos
 
-- **Registro y acceso:** registro público de vendedores; creación administrativa de compradores y administradores; sesiones revocadas al cambiar permisos o cerrar sesión.
+- **Registro y acceso:** registro público de vendedores; creación administrativa de compradores y administradores; recuperación de contraseña con autorización administrativa y código de quince minutos; sesiones revocadas al recuperar contraseña, cambiar permisos o cerrar sesión. Véase [manual de recuperación](docs/RECUPERACION.md).
 - **Ventas:** búsqueda por nombre/código, cantidades, carrito, descuentos por línea y generales, confirmación atómica, comprobante imprimible e historial. El vendedor consulta solo sus ventas.
 - **Compras:** fichas de productos con ID consecutivo; costos netos, IVA, otros impuestos, recargo de ganancia, precio sugerido y recepción de múltiples productos por proveedor.
 - **Inventario:** consulta, creación, edición, eliminación lógica sin stock, mínimo de existencias, daños con motivo, historial de movimientos y estadísticas mensuales.

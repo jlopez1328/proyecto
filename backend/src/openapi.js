@@ -1,7 +1,7 @@
 const ref = name => ({$ref: `#/components/schemas/${name}`});
 const json = schema => ({'application/json': {schema}});
 const error = {description: 'Error de validación, sesión, permiso, recurso o conflicto', content: json(ref('Error'))};
-const responses = (schema, created = false) => ({[created ? '201' : '200']: {description: 'Operación completada', content: json(schema)}, '400': error, '401': error, '403': error, '404': error, '409': error, '429': error, '500': error});
+const responses = (schema, created = false, status) => ({[status || (created ? '201' : '200')]: {description: 'Operación completada', content: json(schema)}, '400': error, '401': error, '403': error, '404': error, '409': error, '429': error, '500': error});
 const params = [{name: 'search', in: 'query', schema: {type: 'string', maxLength: 160}}, {name: 'page', in: 'query', schema: {type: 'integer', minimum: 1, default: 1}}, {name: 'limit', in: 'query', schema: {type: 'integer', minimum: 1, maximum: 100, default: 20}}];
 const idParam = {name: 'id', in: 'path', required: true, schema: {type: 'string', pattern: '^[a-fA-F0-9]{24}$'}};
 const property = (type, extra = {}) => ({type, ...extra});
@@ -17,16 +17,20 @@ const page = name => object({items: array(ref(name)), total: property('integer')
 const paths = {};
 function endpoint(path, method, tag, summary, schema, body, options = {}) {
   paths[path] ||= {};
-  paths[path][method] = {tags: [tag], summary, security: options.public ? [] : [{cookieAuth: []}, {bearerAuth: []}], ...(body ? {requestBody: {required: true, content: json(ref(body))}} : {}), ...(options.parameters ? {parameters: options.parameters} : {}), responses: responses(schema, method === 'post' && !path.includes('/auth/login') && !path.includes('/auth/logout'))};
+  paths[path][method] = {tags: [tag], summary, security: options.public ? [] : [{cookieAuth: []}, {bearerAuth: []}], ...(body ? {requestBody: {required: true, content: json(ref(body))}} : {}), ...(options.parameters ? {parameters: options.parameters} : {}), responses: responses(schema, method === 'post' && !path.includes('/auth/login') && !path.includes('/auth/logout'), options.status)};
 }
 endpoint('/health', 'get', 'Sistema', 'Estado de MongoDB', object({status: str}), null, {public: true});
 endpoint('/auth/register', 'post', 'Sesión', 'Registro público (siempre vendedor); devuelve cookie HttpOnly', object({user: ref('User')}), 'Registration', {public: true});
 endpoint('/auth/login', 'post', 'Sesión', 'Inicio de sesión; devuelve cookie JWT válida por 8 horas', object({user: ref('User')}), 'Credentials', {public: true});
 endpoint('/auth/me', 'get', 'Sesión', 'Usuario autenticado', object({user: ref('User')}));
 endpoint('/auth/logout', 'post', 'Sesión', 'Revoca todas las sesiones del usuario', object({message: str}));
+endpoint('/auth/password-reset/request', 'post', 'Sesión', 'Solicita autorización administrativa; respuesta genérica sin revelar cuentas; no envía correo', object({message: str}), 'ResetRequest', {public: true, status: 202});
+endpoint('/auth/password-reset/confirm', 'post', 'Sesión', 'Cambia contraseña con código autorizado de un solo uso; revoca todas las sesiones', object({message: str}), 'ResetPassword', {public: true, status: 200});
 endpoint('/users', 'get', 'Usuarios', 'Administrador: lista paginada de usuarios', page('User'), null, {parameters: params});
 endpoint('/users', 'post', 'Usuarios', 'Administrador: crea cuenta con rol', object({user: ref('User')}), 'UserCreation');
 endpoint('/users/{id}', 'patch', 'Usuarios', 'Administrador: rol y estado; prohíbe modificar cuenta propia', object({user: ref('User')}), 'UserUpdate', {parameters: [idParam]});
+endpoint('/users/{id}/password-reset', 'post', 'Usuarios', 'Administrador: habilita cambio durante 15 minutos y entrega código una sola vez; otro administrador para cuenta propia', object({code: str, expiresAt: property('string', {format: 'date-time'}), user: object({_id: str, name: str, email: str})}), null, {parameters: [idParam]});
+endpoint('/users/{id}/password-reset', 'delete', 'Usuarios', 'Administrador: revoca autorización y solicitud de cambio', object({message: str}), null, {parameters: [idParam]});
 endpoint('/catalog', 'get', 'Ventas', 'Vendedor/administrador: catálogo sin precios de compra', page('CatalogProduct'), null, {parameters: params});
 endpoint('/products', 'get', 'Inventario', 'Comprador/administrador: catálogo completo', page('Product'), null, {parameters: params});
 endpoint('/products', 'post', 'Inventario', 'Crea producto con ID consecutivo y stock cero', object({product: ref('Product')}), 'ProductInput');
@@ -49,8 +53,10 @@ export const openapi = {
       Credentials: object(credentials, ['email', 'password']), Registration: object({...credentials, name: str}, ['email', 'password', 'name']),
       UserCreation: object({...credentials, name: str, role: ref('Role')}, ['email', 'password', 'name', 'role']),
       UserUpdate: object({role: ref('Role'), active: property('boolean')}, ['role', 'active']),
+      ResetRequest: object({email: credentials.email}, ['email']),
+      ResetPassword: object({email: credentials.email, code: property('string', {pattern: '^[A-Za-z0-9_-]{32}$'}), password: credentials.password, confirmPassword: {...credentials.password, description: 'Debe coincidir con password'}}, ['email', 'code', 'password', 'confirmPassword']),
       Role: property('string', {enum: ['vendedor', 'comprador', 'administrador']}),
-      User: object({_id: str, name: str, email: str, role: ref('Role'), active: property('boolean'), createdAt: property('string', {format: 'date-time'}), updatedAt: str, __v: num()}),
+      User: object({_id: str, name: str, email: str, role: ref('Role'), active: property('boolean'), passwordResetRequestedAt: property('string', {format: 'date-time', nullable: true}), passwordResetExpiresAt: property('string', {format: 'date-time', nullable: true}), createdAt: property('string', {format: 'date-time'}), updatedAt: str, __v: num()}),
       ProductInput: object(product, ['name', 'netPrice']),
       CatalogProduct: object({_id: str, code: str, name: str, category: str, salePrice: num(), stock: num(), minStock: num()}),
       Product: object({...product, _id: str, code: str, stock: num(), damaged: num(), suggestedPrice: num(), active: property('boolean'), createdAt: str, updatedAt: str, __v: num()}),

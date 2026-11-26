@@ -7,6 +7,8 @@ const id = z.string().regex(/^[a-f\d]{24}$/i, 'Identificador inválido');
 export const roles = z.enum(['vendedor', 'comprador', 'administrador']);
 export const credentials = z.object({email: z.email().max(254).transform(s => s.toLowerCase()), password: z.string().min(10).max(72).refine(s => Buffer.byteLength(s) <= 72, 'Máximo 72 bytes')}).strict();
 export const registration = credentials.extend({name: text(100)});
+export const resetRequest = z.object({email: credentials.shape.email}).strict();
+export const resetPassword = resetRequest.extend({code: z.string().trim().regex(/^[A-Za-z0-9_-]{32}$/, 'Código de recuperación inválido'), password: credentials.shape.password, confirmPassword: credentials.shape.password}).strict().refine(data => data.password === data.confirmPassword, {message: 'Las contraseñas no coinciden', path: ['confirmPassword']});
 export const userCreation = registration.extend({role: roles});
 export const productInput = z.object({name: text(160), category: text(80).default('General'), netPrice: price, vat: percent.default(19), tax: percent.default(0), margin: z.number().min(0).max(1000).default(30), salePrice: price.optional(), minStock: z.number().int().min(0).max(1000000).default(5)}).strict();
 const uniqueLines = lines => new Set(lines.map(l => l.product)).size === lines.length;

@@ -106,3 +106,61 @@ test('rechaza origen ajeno y expone contrato Swagger',async()=>{
   const schema=await request(app).get('/api/openapi.json').expect(200);assert.equal(schema.body.openapi,'3.0.3');assert.ok(schema.body.paths['/products/{id}/damage']);
   await request(app).get('/api/health').expect(200);await request(app).get('/api/no-existe').expect(404);
 });
+
+const resetBody=(code,extra={})=>({email:'seller@test.local',code,password:'NuevaClaveNexus2026!',confirmPassword:'NuevaClaveNexus2026!',...extra});
+const approveReset=async()=> (await admin.post(`/api/users/${users.Seller._id}/password-reset`).expect(201)).body;
+test('recuperación solicita autorización sin revelar cuentas y conserva el código habilitado',async()=>{
+  const known=await request(app).post('/api/auth/password-reset/request').send({email:'seller@test.local'}).expect(202);
+  const unknown=await request(app).post('/api/auth/password-reset/request').send({email:'missing@test.local'}).expect(202);
+  assert.deepEqual(known.body,unknown.body);
+  assert.ok((await User.findById(users.Seller._id)).passwordResetRequestedAt);
+  const grant=await approveReset();
+  await request(app).post('/api/auth/password-reset/request').send({email:'seller@test.local'}).expect(202);
+  const stored=await User.findById(users.Seller._id).select('+passwordResetHash');
+  assert.equal(stored.passwordResetRequestedAt,null);assert.equal(stored.passwordResetExpiresAt.toISOString(),grant.expiresAt);
+  assert.match(grant.code,/^[A-Za-z0-9_-]{32}$/);assert.notEqual(stored.passwordResetHash,grant.code);
+  const listed=(await admin.get('/api/users')).body.items.find(u=>u._id===String(users.Seller._id));
+  assert.equal(listed.passwordResetHash,undefined);assert.equal(listed.passwordResetApprovedBy,undefined);assert.equal(listed.password,undefined);
+});
+test('solo administrador puede habilitar o revocar y no puede habilitar su propia recuperación',async()=>{
+  const path=`/api/users/${users.Seller._id}/password-reset`;
+  await request(app).post(path).expect(401);await seller.post(path).expect(403);await buyer.post(path).expect(403);await seller.delete(path).expect(403);
+  await admin.post(`/api/users/${users.Admin._id}/password-reset`).expect(409);
+  await User.updateOne({_id:users.Seller._id},{$set:{active:false}});await admin.post(path).expect(404);
+});
+test('cambio autorizado cifra contraseña, consume código y revoca sesiones',async()=>{
+  const second=request.agent(app);await second.post('/api/auth/login').send({email:'seller@test.local',password}).expect(200);
+  const grant=await approveReset();assert.ok(new Date(grant.expiresAt)>new Date());assert.ok(new Date(grant.expiresAt)<=new Date(Date.now()+15*60000));
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(200);
+  await seller.get('/api/auth/me').expect(401);await second.get('/api/auth/me').expect(401);
+  await request(app).post('/api/auth/login').send({email:'seller@test.local',password}).expect(401);
+  await request(app).post('/api/auth/login').send({email:'seller@test.local',password:'NuevaClaveNexus2026!'}).expect(200);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(400);
+  const stored=await User.findById(users.Seller._id).select('+password +passwordResetHash');
+  assert.ok(await bcrypt.compare('NuevaClaveNexus2026!',stored.password));assert.equal(stored.passwordResetHash,undefined);assert.equal(stored.passwordResetExpiresAt,null);
+});
+test('rechaza códigos sin autorización, vencidos, revocados y reemplazados',async()=>{
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody('A'.repeat(32))).expect(400);
+  let grant=await approveReset();await User.updateOne({_id:users.Seller._id},{$set:{passwordResetExpiresAt:new Date(Date.now()-1000)}});
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(400);
+  grant=await approveReset();await admin.delete(`/api/users/${users.Seller._id}/password-reset`).expect(200);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(400);
+  grant=await approveReset();const replacement=await approveReset();assert.notEqual(grant.code,replacement.code);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(400);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(replacement.code,{email:'other@test.local'})).expect(400);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(replacement.code)).expect(200);
+});
+test('valida confirmación y longitud sin consumir un código válido; cambios de permisos lo revocan',async()=>{
+  const grant=await approveReset();
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code,{confirmPassword:'UnaClaveDistinta2026!'})).expect(400);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code,{password:'corta',confirmPassword:'corta'})).expect(400);
+  const long='á'.repeat(40);await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code,{password:long,confirmPassword:long})).expect(400);
+  assert.ok((await User.findById(users.Seller._id).select('+passwordResetHash')).passwordResetHash);
+  await admin.patch(`/api/users/${users.Seller._id}`).send({role:'comprador',active:true}).expect(200);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(400);
+});
+test('dos intentos simultáneos consumen el código una sola vez',async()=>{
+  const grant=await approveReset();
+  const results=await Promise.all([request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)),request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code))]);
+  assert.deepEqual(results.map(r=>r.status).sort(),[200,400]);
+});

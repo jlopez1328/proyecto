@@ -10,10 +10,13 @@ Contrato ejecutable: `backend/src/openapi.js`. Con la API iniciada, abre [Swagge
 | GET | /openapi.json, /docs | Contrato y documentación interactiva |
 | POST | /auth/register | Público; nombre, correo, clave; crea vendedor |
 | POST | /auth/login | Público; correo, clave; establece cookie JWT |
+| POST | /auth/password-reset/request | Público; email; registra solicitud y responde 202 sin revelar si la cuenta existe |
+| POST | /auth/password-reset/confirm | Público; email, code, password y confirmPassword; cambia clave solo con código autorizado vigente |
 | GET | /auth/me | Sesión actual |
 | POST | /auth/logout | Revoca sesiones y elimina cookie |
 | GET, POST | /users | Administrador; lista o crea cuentas con rol |
 | PATCH | /users/:id | Administrador; cambia role y active; no cuenta propia |
+| POST, DELETE | /users/:id/password-reset | Administrador; habilita cambio durante quince minutos o revoca; otro administrador para cuenta propia |
 | GET | /catalog | Vendedor/administrador; catálogo sin costos |
 | GET, POST | /products | Comprador/administrador; lista o crea producto |
 | PATCH | /products/:id | Comprador/administrador; ficha completa sin cambiar código/stock |

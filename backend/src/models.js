@@ -8,9 +8,13 @@ const userSchema = new Schema({
   password: {type: String, required: true, select: false},
   role: {type: String, enum: ['vendedor', 'comprador', 'administrador'], default: 'vendedor'},
   active: {type: Boolean, default: true},
+  passwordResetRequestedAt: {type: Date, default: null},
+  passwordResetExpiresAt: {type: Date, default: null},
+  passwordResetHash: {type: String, select: false},
+  passwordResetApprovedBy: {type: Schema.Types.ObjectId, ref: 'User', select: false},
   tokenVersion: {type: Number, default: 0}
 }, {timestamps: true});
-userSchema.set('toJSON', {transform: (_, ret) => { delete ret.password; delete ret.tokenVersion; return ret; }});
+userSchema.set('toJSON', {transform: (_, ret) => { delete ret.password; delete ret.tokenVersion; delete ret.passwordResetHash; delete ret.passwordResetApprovedBy; return ret; }});
 export const User = model('User', userSchema);
 export const Counter = model('Counter', new Schema({_id: String, seq: {type: Number, default: 0}}));
 export const Product = model('Product', new Schema({
