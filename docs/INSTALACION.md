@@ -4,7 +4,7 @@
 
 En la terminal de esta carpeta ejecuta `npm ci` y `npm run local`. No necesitas instalar MongoDB como servicio: se usa el binario oficial MongoDB 7.0.24, descargado por la herramienta incluida si todavía no está en caché.
 
-Abre http://127.0.0.1:5173. Si no existía un administrador, el inicio local crea una cuenta y genera una contraseña aleatoria en backend/.env. Usa los valores ADMIN_EMAIL y ADMIN_PASSWORD de ese archivo para entrar. Las credenciales, la base de datos y las dependencias quedan excluidas de Git.
+Abre http://127.0.0.1:5173. Si no existía un administrador, el inicio local crea una cuenta y genera una contraseña aleatoria en backend/.env. Usa ADMIN_USERNAME (por defecto admin) y ADMIN_PASSWORD para entrar. ADMIN_EMAIL es solo contacto. Las cuentas antiguas reciben un nombre de usuario sin cambiar sus contraseñas. Las credenciales, la base de datos y las dependencias quedan excluidas de Git.
 
 Los datos persisten en .mongo/db incluso al detener y volver a iniciar. Ctrl+C detiene frontend, API y el MongoDB iniciado por este comando; no elimina datos. Para volver a usarlo, ejecuta `npm run local`. Los puertos 5173, 4000 y 27017 deben estar disponibles. Si ya usas un MongoDB en 27017, se conserva y se verifica que admita transacciones. Si cambias MONGODB_URI, esa base debe estar iniciada previamente; el comando solo administra automáticamente la URI local de ejemplo.
 
@@ -83,6 +83,7 @@ Abre `backend/.env`. Mantén JWT_SECRET generado por setup y define:
 PORT=4000
 NODE_ENV=development
 ADMIN_NAME=Tu nombre
+ADMIN_USERNAME=admin
 ADMIN_EMAIL=tu-correo@ejemplo.com
 ADMIN_PASSWORD=UnaClavePropiaSegura2026
 FRONTEND_URL=http://localhost:5173,http://127.0.0.1:5173,http://localhost:4000,http://127.0.0.1:4000

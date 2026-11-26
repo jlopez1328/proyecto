@@ -20,8 +20,8 @@ after(async()=>{await mongoose.disconnect();if(replica)await replica.stop();});
 beforeEach(async()=>{
   await Promise.all([User.deleteMany({}),Product.deleteMany({}),Sale.deleteMany({}),Purchase.deleteMany({}),Movement.deleteMany({}),Counter.updateMany({},{$set:{seq:0}})]);
   const hashed=await bcrypt.hash(password,4);users={};
-  for(const [name,role] of [['Admin','administrador'],['Buyer','comprador'],['Seller','vendedor'],['Other','vendedor']])users[name]=await User.create({name,email:`${name.toLowerCase()}@test.local`,password:hashed,role});
-  const login=async name=>{const agent=request.agent(app);await agent.post('/api/auth/login').send({email:`${name.toLowerCase()}@test.local`,password}).expect(200);return agent;};
+  for(const [name,role] of [['Admin','administrador'],['Buyer','comprador'],['Seller','vendedor'],['Other','vendedor']])users[name]=await User.create({name,username:name.toLowerCase(),email:`${name.toLowerCase()}@test.local`,password:hashed,role});
+  const login=async name=>{const agent=request.agent(app);await agent.post('/api/auth/login').send({username:name.toLowerCase(),password}).expect(200);return agent;};
   [admin,buyer,seller,otherSeller]=await Promise.all(['Admin','Buyer','Seller','Other'].map(login));
 });
 async function product(overrides={}){const res=await buyer.post('/api/products').send({name:'Arroz',netPrice:100,vat:19,tax:5,margin:30,minStock:2,...overrides}).expect(201);return res.body.product;}
@@ -30,13 +30,13 @@ async function stocked(quantity=10){const p=await product();await buyer.post('/a
 const saleBody=(p,quantity=1,discount=0)=>({requestId:randomUUID(),discount,lines:[{product:p._id,quantity,discount:10}]});
 
 test('registro público vendedor, contraseña cifrada, cookie segura y sesión',async()=>{
-  await request(app).post('/api/auth/register').send({name:'Intruso',email:'bad@test.local',password,role:'administrador'}).expect(400);
-  const res=await request(app).post('/api/auth/register').send({name:'Nuevo',email:'new@test.local',password}).expect(201);
+  await request(app).post('/api/auth/register').send({name:'Intruso',username:'intruso',email:'bad@test.local',password,role:'administrador'}).expect(400);
+  const res=await request(app).post('/api/auth/register').send({name:'Nuevo',username:'nuevo',email:'new@test.local',password}).expect(201);
   assert.equal(res.body.user.role,'vendedor');assert.equal(res.body.user.password,undefined);
   assert.match(res.headers['set-cookie'][0],/HttpOnly/);assert.match(res.headers['set-cookie'][0],/SameSite=Strict/);
   const u=await User.findOne({email:'new@test.local'}).select('+password');assert.notEqual(u.password,password);assert.ok(await bcrypt.compare(password,u.password));
   await request(app).get('/api/products').expect(401);
-  await request(app).post('/api/auth/login').send({email:'new@test.local',password:'incorrect-password'}).expect(401);
+  await request(app).post('/api/auth/login').send({username:'nuevo',password:'incorrect-password'}).expect(401);
 });
 test('matriz de permisos aplicada en servidor y catálogo sin costos',async()=>{
   await product();await seller.get('/api/products').expect(403);await seller.get('/api/purchases').expect(403);await seller.get('/api/movements').expect(403);await buyer.get('/api/sales').expect(403);await buyer.get('/api/users').expect(403);
@@ -93,7 +93,7 @@ test('cambios de rol y cierre de sesión revocan JWT anteriores',async()=>{
   await admin.patch(`/api/users/${users.Admin._id}`).send({role:'vendedor',active:true}).expect(409);
   await admin.patch(`/api/users/${users.Seller._id}`).send({role:'comprador',active:true}).expect(200);await seller.get('/api/auth/me').expect(401);
   await buyer.post('/api/auth/logout').expect(200);await buyer.get('/api/auth/me').expect(401);
-  const created=await admin.post('/api/users').send({name:'Comprador 2',email:'buyer2@test.local',password,role:'comprador'}).expect(201);assert.equal(created.body.user.password,undefined);
+  const created=await admin.post('/api/users').send({name:'Comprador 2',username:'buyer2',email:'buyer2@test.local',password,role:'comprador'}).expect(201);assert.equal(created.body.user.password,undefined);
 });
 test('informes mensuales respetan año y zona horaria de Bogotá',async()=>{
   const p=await stocked();await seller.post('/api/sales').send(saleBody(p)).expect(201);
@@ -107,60 +107,96 @@ test('rechaza origen ajeno y expone contrato Swagger',async()=>{
   await request(app).get('/api/health').expect(200);await request(app).get('/api/no-existe').expect(404);
 });
 
-const resetBody=(code,extra={})=>({email:'seller@test.local',code,password:'NuevaClaveNexus2026!',confirmPassword:'NuevaClaveNexus2026!',...extra});
+const resetBody=(extra={})=>({username:'seller',adminUsername:'admin',adminPassword:password,password:'NuevaClaveNexus2026!',confirmPassword:'NuevaClaveNexus2026!',...extra});
 const approveReset=async()=> (await admin.post(`/api/users/${users.Seller._id}/password-reset`).expect(201)).body;
-test('recuperación solicita autorización sin revelar cuentas y conserva el código habilitado',async()=>{
-  const known=await request(app).post('/api/auth/password-reset/request').send({email:'seller@test.local'}).expect(202);
-  const unknown=await request(app).post('/api/auth/password-reset/request').send({email:'missing@test.local'}).expect(202);
+test('recuperación solicita autorización sin revelar cuentas y no genera códigos',async()=>{
+  const known=await request(app).post('/api/auth/password-reset/request').send({username:'seller'}).expect(202);
+  const unknown=await request(app).post('/api/auth/password-reset/request').send({username:'missing'}).expect(202);
   assert.deepEqual(known.body,unknown.body);
   assert.ok((await User.findById(users.Seller._id)).passwordResetRequestedAt);
-  const grant=await approveReset();
-  await request(app).post('/api/auth/password-reset/request').send({email:'seller@test.local'}).expect(202);
+  const grant=await approveReset();assert.equal(grant.code,undefined);
+  await request(app).post('/api/auth/password-reset/request').send({username:'seller'}).expect(202);
   const stored=await User.findById(users.Seller._id).select('+passwordResetHash');
-  assert.equal(stored.passwordResetRequestedAt,null);assert.equal(stored.passwordResetExpiresAt.toISOString(),grant.expiresAt);
-  assert.match(grant.code,/^[A-Za-z0-9_-]{32}$/);assert.notEqual(stored.passwordResetHash,grant.code);
+  assert.equal(stored.passwordResetRequestedAt,null);assert.equal(stored.passwordResetExpiresAt.toISOString(),grant.expiresAt);assert.equal(stored.passwordResetHash,undefined);
   const listed=(await admin.get('/api/users')).body.items.find(u=>u._id===String(users.Seller._id));
   assert.equal(listed.passwordResetHash,undefined);assert.equal(listed.passwordResetApprovedBy,undefined);assert.equal(listed.password,undefined);
 });
-test('solo administrador puede habilitar o revocar y no puede habilitar su propia recuperación',async()=>{
+test('solo administrador puede habilitar o revocar y otro administrador debe recuperar su cuenta',async()=>{
   const path=`/api/users/${users.Seller._id}/password-reset`;
   await request(app).post(path).expect(401);await seller.post(path).expect(403);await buyer.post(path).expect(403);await seller.delete(path).expect(403);
   await admin.post(`/api/users/${users.Admin._id}/password-reset`).expect(409);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody({username:'admin'})).expect(409);
   await User.updateOne({_id:users.Seller._id},{$set:{active:false}});await admin.post(path).expect(404);
 });
-test('cambio autorizado cifra contraseña, consume código y revoca sesiones',async()=>{
-  const second=request.agent(app);await second.post('/api/auth/login').send({email:'seller@test.local',password}).expect(200);
+test('cambio con credenciales administrativas consume habilitación y revoca sesiones',async()=>{
+  const second=request.agent(app);await second.post('/api/auth/login').send({username:'seller',password}).expect(200);
   const grant=await approveReset();assert.ok(new Date(grant.expiresAt)>new Date());assert.ok(new Date(grant.expiresAt)<=new Date(Date.now()+15*60000));
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(200);
+  const result=await request(app).post('/api/auth/password-reset/confirm').send(resetBody()).expect(200);
+  assert.deepEqual(Object.keys(result.body),['message']);
   await seller.get('/api/auth/me').expect(401);await second.get('/api/auth/me').expect(401);
-  await request(app).post('/api/auth/login').send({email:'seller@test.local',password}).expect(401);
-  await request(app).post('/api/auth/login').send({email:'seller@test.local',password:'NuevaClaveNexus2026!'}).expect(200);
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(400);
+  await request(app).post('/api/auth/login').send({username:'seller',password}).expect(401);
+  await request(app).post('/api/auth/login').send({username:'seller',password:'NuevaClaveNexus2026!'}).expect(200);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody()).expect(400);
   const stored=await User.findById(users.Seller._id).select('+password +passwordResetHash');
-  assert.ok(await bcrypt.compare('NuevaClaveNexus2026!',stored.password));assert.equal(stored.passwordResetHash,undefined);assert.equal(stored.passwordResetExpiresAt,null);
+  assert.ok(await bcrypt.compare('NuevaClaveNexus2026!',stored.password));assert.equal(stored.passwordResetHash,undefined);assert.equal(stored.passwordResetExpiresAt,null);assert.equal(stored.role,'vendedor');
 });
-test('rechaza códigos sin autorización, vencidos, revocados y reemplazados',async()=>{
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody('A'.repeat(32))).expect(400);
-  let grant=await approveReset();await User.updateOne({_id:users.Seller._id},{$set:{passwordResetExpiresAt:new Date(Date.now()-1000)}});
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(400);
-  grant=await approveReset();await admin.delete(`/api/users/${users.Seller._id}/password-reset`).expect(200);
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(400);
-  grant=await approveReset();const replacement=await approveReset();assert.notEqual(grant.code,replacement.code);
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(400);
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(replacement.code,{email:'other@test.local'})).expect(400);
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(replacement.code)).expect(200);
+test('rechaza credenciales administrativas inválidas y autorizaciones ausentes, vencidas o revocadas',async()=>{
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody()).expect(400);
+  await approveReset();
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody({adminPassword:'ClaveIncorrecta2026!'})).expect(401);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody({adminUsername:'seller'})).expect(401);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody({adminUsername:'missing'})).expect(401);
+  await User.updateOne({_id:users.Admin._id},{$set:{active:false}});
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody()).expect(401);
+  await User.updateOne({_id:users.Admin._id},{$set:{active:true}});
+  await User.updateOne({_id:users.Seller._id},{$set:{passwordResetExpiresAt:new Date(Date.now()-1000)}});
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody()).expect(400);
+  await approveReset();await admin.delete(`/api/users/${users.Seller._id}/password-reset`).expect(200);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody()).expect(400);
+  await approveReset();
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody({username:'other'})).expect(400);
+  await request(app).post('/api/auth/password-reset/confirm').send({...resetBody(),code:'A'.repeat(32)}).expect(400);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody()).expect(200);
 });
-test('valida confirmación y longitud sin consumir un código válido; cambios de permisos lo revocan',async()=>{
-  const grant=await approveReset();
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code,{confirmPassword:'UnaClaveDistinta2026!'})).expect(400);
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code,{password:'corta',confirmPassword:'corta'})).expect(400);
-  const long='á'.repeat(40);await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code,{password:long,confirmPassword:long})).expect(400);
-  assert.ok((await User.findById(users.Seller._id).select('+passwordResetHash')).passwordResetHash);
+test('valida confirmación y longitud sin consumir autorización; cambios de permisos la revocan',async()=>{
+  await approveReset();
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody({confirmPassword:'UnaClaveDistinta2026!'})).expect(400);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody({password:'corta',confirmPassword:'corta'})).expect(400);
+  const long='á'.repeat(40);await request(app).post('/api/auth/password-reset/confirm').send(resetBody({password:long,confirmPassword:long})).expect(400);
+  assert.ok((await User.findById(users.Seller._id)).passwordResetExpiresAt);
   await admin.patch(`/api/users/${users.Seller._id}`).send({role:'comprador',active:true}).expect(200);
-  await request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)).expect(400);
+  await request(app).post('/api/auth/password-reset/confirm').send(resetBody()).expect(400);
 });
-test('dos intentos simultáneos consumen el código una sola vez',async()=>{
-  const grant=await approveReset();
-  const results=await Promise.all([request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code)),request(app).post('/api/auth/password-reset/confirm').send(resetBody(grant.code))]);
+test('dos intentos simultáneos consumen la habilitación una sola vez',async()=>{
+  await approveReset();
+  const results=await Promise.all([request(app).post('/api/auth/password-reset/confirm').send(resetBody()),request(app).post('/api/auth/password-reset/confirm').send(resetBody())]);
   assert.deepEqual(results.map(r=>r.status).sort(),[200,400]);
+});
+
+test('nombre de usuario único, normalizado y separado del correo de contacto',async()=>{
+  const account={name:'Juan Pérez',username:'Juan.Perez',email:'contacto@test.local',password};
+  const created=await request(app).post('/api/auth/register').send(account).expect(201);assert.equal(created.body.user.username,'juan.perez');assert.equal(created.body.user.email,'contacto@test.local');
+  await request(app).post('/api/auth/login').send({username:'JUAN.PEREZ',password}).expect(200);
+  await request(app).post('/api/auth/login').send({email:'contacto@test.local',password}).expect(400);
+  await request(app).post('/api/auth/login').send({username:'contacto@test.local',password}).expect(400);
+  await request(app).post('/api/auth/register').send({...account,username:'JUAN.PEREZ',email:'otrocontacto@test.local'}).expect(409);
+  await request(app).post('/api/auth/register').send({...account,username:'nombre con espacios',email:'otrocontacto@test.local'}).expect(400);
+  const updated=await admin.patch(`/api/users/${users.Seller._id}`).send({username:'nuevo.vendedor',role:'vendedor',active:true}).expect(200);assert.equal(updated.body.user.username,'nuevo.vendedor');
+  await seller.get('/api/auth/me').expect(401);
+  await request(app).post('/api/auth/login').send({username:'seller',password}).expect(401);
+  await request(app).post('/api/auth/login').send({username:'nuevo.vendedor',password}).expect(200);
+});
+test('migración asigna usuarios sin cambiar contraseñas y resuelve nombres repetidos',async()=>{
+  const {migrateUsernames}=await import('../src/usernames.js');
+  const hashed=await bcrypt.hash(password,4);
+  const inserted=await User.collection.insertMany([
+    {name:'Administrador anterior',email:'legacyadmin@test.local',password:hashed,role:'administrador',active:true,tokenVersion:0},
+    {name:'María Pérez',email:'maria1@test.local',password:hashed,role:'vendedor',active:true,tokenVersion:0},
+    {name:'María Pérez',email:'maria2@test.local',password:hashed,role:'comprador',active:true,tokenVersion:0}
+  ]);
+  const migration=await migrateUsernames(User,{adminEmail:'legacyadmin@test.local',adminUsername:'jefe'});assert.equal(migration.length,3);
+  const legacyAdmin=await User.findById(inserted.insertedIds[0]).select('+password');assert.equal(legacyAdmin.username,'jefe');assert.equal(legacyAdmin.password,hashed);
+  const first=await User.findById(inserted.insertedIds[1]),second=await User.findById(inserted.insertedIds[2]);assert.equal(first.username,'maria.perez');assert.equal(second.username,'maria.perez_2');
+  assert.deepEqual(await migrateUsernames(User,{adminEmail:'legacyadmin@test.local',adminUsername:'jefe'}),[]);
+  await request(app).post('/api/auth/login').send({username:'jefe',password}).expect(200);
 });

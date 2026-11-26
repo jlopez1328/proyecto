@@ -6,7 +6,7 @@ Los archivos HTML/CSS y las imágenes de la raíz de esta rama se conservan idé
 
 ## Inicio desde Visual Studio Code
 
-Para probarlo únicamente en este computador sin instalar Docker ni MongoDB, ejecuta `npm ci` y después `npm run local`. Este comando inicia MongoDB en 127.0.0.1 con datos persistentes en .mongo/db y abre los servicios en http://127.0.0.1:5173. En el primer inicio crea un administrador si no existe; sus credenciales están en ADMIN_EMAIL y ADMIN_PASSWORD de backend/.env, archivo privado ignorado por Git. No sobrescribe cuentas existentes ni publica la aplicación. Detén los servicios con Ctrl+C. La primera ejecución puede descargar el binario oficial de MongoDB. Esta opción requiere las dependencias de desarrollo y es para pruebas locales.
+Para probarlo únicamente en este computador sin instalar Docker ni MongoDB, ejecuta `npm ci` y después `npm run local`. Este comando inicia MongoDB en 127.0.0.1 con datos persistentes en .mongo/db y abre los servicios en http://127.0.0.1:5173. En el primer inicio crea un administrador si no existe; sus credenciales están en ADMIN_USERNAME y ADMIN_PASSWORD de backend/.env, archivo privado ignorado por Git. ADMIN_EMAIL se conserva como contacto. No sobrescribe cuentas existentes ni publica la aplicación. Detén los servicios con Ctrl+C. La primera ejecución puede descargar el binario oficial de MongoDB. Esta opción requiere las dependencias de desarrollo y es para pruebas locales.
 
 Abre esta carpeta en VS Code y abre **Terminal → Nueva terminal**. Necesitas Node.js 22.12 o posterior y MongoDB con replica set; Docker Desktop es una opción para la base local.
 
@@ -28,7 +28,7 @@ Abre [NexusStock](http://localhost:5173) y entra con el administrador que config
 
 ## Módulos
 
-- **Registro y acceso:** registro público de vendedores; creación administrativa de compradores y administradores; recuperación de contraseña con autorización administrativa y código de quince minutos; sesiones revocadas al recuperar contraseña, cambiar permisos o cerrar sesión. Véase [manual de recuperación](docs/RECUPERACION.md).
+- **Registro y acceso:** nombre de usuario y contraseña, con correo solo como contacto; registro público de vendedores y creación administrativa de compradores/administradores; recuperación con habilitación de quince minutos y nombre de usuario/contraseña de un administrador activo, sin códigos. Se revocan sesiones al recuperar contraseña, cambiar usuario/permisos o cerrar sesión. Véase [manual de usuarios y recuperación](docs/RECUPERACION.md).
 - **Ventas:** búsqueda por nombre/código, cantidades, carrito, descuentos por línea y generales, confirmación atómica, comprobante imprimible e historial. El vendedor consulta solo sus ventas.
 - **Compras:** fichas de productos con ID consecutivo; costos netos, IVA, otros impuestos, recargo de ganancia, precio sugerido y recepción de múltiples productos por proveedor.
 - **Inventario:** consulta, creación, edición, eliminación lógica sin stock, mínimo de existencias, daños con motivo, historial de movimientos y estadísticas mensuales.

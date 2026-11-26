@@ -3,7 +3,7 @@
 ## Primera operación
 
 1. Entra con la cuenta administradora creada con `npm run seed`.
-2. En Usuarios crea cuentas de vendedor y comprador con correos únicos y claves propias. El registro público también permite crear vendedores.
+2. En Usuarios crea cuentas de vendedor y comprador con nombre de usuario único, nombre completo, correo de contacto y contraseña. El acceso usa nombre de usuario y contraseña; el correo solo se completa como contacto. El registro público también permite crear vendedores.
 3. En Compras selecciona Crear producto: nombre, categoría, neto, IVA, otros impuestos, ganancia y mínimo de stock. El sistema asigna PRD-000001 y siguientes. Crear la ficha no incrementa existencias.
 4. Busca el producto, agrégalo a la compra, ajusta cantidad y valores e introduce el proveedor. Puedes agregar varios productos. Confirma y consulta el comprobante interno. El stock aumenta y el precio de venta se actualiza al sugerido.
 5. En Ventas busca por nombre o código y agrega productos. Ajusta cantidades, descuento de cada línea y descuento general. Puedes registrar un cliente y una nota. Confirma; el servidor toma el precio vigente y valida existencias.

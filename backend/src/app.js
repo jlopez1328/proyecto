@@ -6,7 +6,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { rateLimit } from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { ZodError } from 'zod';
@@ -31,7 +31,7 @@ app.use('/api', (req, res, next) => {
 app.use('/api', rateLimit({windowMs: 60000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false, message: {error: 'Demasiadas solicitudes. Espera un minuto.'}}));
 const authLimit = rateLimit({windowMs: 15 * 60000, limit: process.env.NODE_ENV === 'test' ? 200 : 30, standardHeaders: 'draft-8', legacyHeaders: false, message: {error: 'Demasiados intentos. Intenta de nuevo en 15 minutos.'}});
 const resetLimit = rateLimit({windowMs: 15 * 60000, limit: process.env.NODE_ENV === 'test' ? 200 : 15, standardHeaders: 'draft-8', legacyHeaders: false, message: {error: 'Demasiados intentos de recuperación. Intenta de nuevo en 15 minutos.'}});
-const resetHash = code => createHash('sha256').update(code).digest('hex');
+const dummyPasswordHash = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxloUp3B/Vm1W5p2vV.R6l5tG3K';
 const resetFields = {passwordResetRequestedAt: null, passwordResetExpiresAt: null};
 function clearSession(res) {
   const {maxAge, ...options} = cookieOptions;
@@ -55,29 +55,35 @@ app.post('/api/auth/register', authLimit, async (req, res) => {
 });
 app.post('/api/auth/login', authLimit, async (req, res) => {
   const data = v.credentials.parse(req.body);
-  const user = await User.findOne({email: data.email}).select('+password');
+  const user = await User.findOne({username: data.username}).select('+password');
   // A fixed valid hash keeps bcrypt work comparable for unknown users.
-  const valid = await bcrypt.compare(data.password, user?.password || '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxloUp3B/Vm1W5p2vV.R6l5tG3K');
-  if (!user?.active || !valid) throw new ApiError(401, 'Correo o contraseña incorrectos.');
+  const valid = await bcrypt.compare(data.password, user?.password || dummyPasswordHash);
+  if (!user?.active || !valid) throw new ApiError(401, 'Usuario o contraseña incorrectos.');
   res.json({user: issueToken(user, res)});
 });
 app.get('/api/auth/me', authenticate, (req, res) => res.json({user: req.user}));
 app.post('/api/auth/password-reset/request', resetLimit, async (req, res) => {
-  const {email} = v.resetRequest.parse(req.body);
+  const {username} = v.resetRequest.parse(req.body);
   const now = new Date();
-  await User.updateOne({email, active: true, $and: [
+  await User.updateOne({username, active: true, $and: [
     {$or: [{passwordResetExpiresAt: null}, {passwordResetExpiresAt: {$lte: now}}]},
     {$or: [{passwordResetRequestedAt: null}, {passwordResetRequestedAt: {$lte: new Date(now.getTime() - 60000)}}]}
   ]}, {$set: {passwordResetRequestedAt: now}});
-  res.status(202).json({message: 'Si la cuenta está activa, el administrador podrá autorizar el cambio. Solicítale tu código de recuperación.'});
+  res.status(202).json({message: 'Si la cuenta está activa, el administrador podrá habilitar el cambio. Pídele que complete personalmente la autorización con su nombre de usuario y contraseña.'});
 });
 app.post('/api/auth/password-reset/confirm', resetLimit, async (req, res) => {
   const data = v.resetPassword.parse(req.body);
-  const filter = {email: data.email, active: true, passwordResetHash: resetHash(data.code), passwordResetExpiresAt: {$gt: new Date()}};
-  if (!(await User.exists(filter))) throw new ApiError(400, 'El código no es válido, venció o no está habilitado por un administrador.');
+  const administrator = await User.findOne({username: data.adminUsername}).select('+password');
+  const valid = await bcrypt.compare(data.adminPassword, administrator?.password || dummyPasswordHash);
+  if (!valid || !administrator?.active || administrator.role !== 'administrador') throw new ApiError(401, 'Usuario o contraseña del administrador incorrectos, o cuenta sin permiso.');
+  if (data.username === data.adminUsername) throw new ApiError(409, 'Otro administrador debe autorizar la recuperación de tu cuenta.');
+  const filter = {username: data.username, active: true, passwordResetApprovedBy: {$ne: null}, passwordResetExpiresAt: {$gt: new Date()}};
+  const authorization = await User.findOne(filter).select('passwordResetExpiresAt +passwordResetApprovedBy');
+  if (!authorization) throw new ApiError(400, 'El cambio no está habilitado o la autorización venció. Solicita al administrador que lo habilite en Usuarios.');
   const password = await bcrypt.hash(data.password, 12);
-  const user = await User.findOneAndUpdate({...filter, passwordResetExpiresAt: {$gt: new Date()}}, {$set: {password, ...resetFields}, $unset: {passwordResetHash: '', passwordResetApprovedBy: ''}, $inc: {tokenVersion: 1}}, {new: true});
-  if (!user) throw new ApiError(400, 'El código no es válido, venció o ya fue utilizado.');
+  if (!(await User.exists({_id: administrator._id, active: true, role: 'administrador', password: administrator.password, tokenVersion: administrator.tokenVersion}))) throw new ApiError(401, 'La autorización del administrador cambió. Verifica sus credenciales nuevamente.');
+  const user = await User.findOneAndUpdate({_id: authorization._id, active: true, passwordResetApprovedBy: authorization.passwordResetApprovedBy, passwordResetExpiresAt: {$eq: authorization.passwordResetExpiresAt, $gt: new Date()}}, {$set: {password, ...resetFields}, $unset: {passwordResetHash: '', passwordResetApprovedBy: ''}, $inc: {tokenVersion: 1}}, {new: true});
+  if (!user) throw new ApiError(400, 'La autorización venció, cambió o ya fue utilizada. Solicita una nueva habilitación.');
   clearSession(res);
   res.json({message: 'Contraseña actualizada. Inicia sesión con tu nueva contraseña. Se cerraron las sesiones anteriores.'});
 });
@@ -88,7 +94,7 @@ app.post('/api/auth/logout', authenticate, async (req, res) => {
 });
 app.get('/api/users', authenticate, admin, async (req, res) => {
   const {page, limit, search} = v.listQuery.parse(req.query);
-  const query = search ? {$or: [{name: new RegExp(escaped(search), 'i')}, {email: new RegExp(escaped(search), 'i')}]} : {};
+  const query = search ? {$or: [{name: new RegExp(escaped(search), 'i')}, {username: new RegExp(escaped(search), 'i')}, {email: new RegExp(escaped(search), 'i')}]} : {};
   const [items, total] = await Promise.all([User.find(query).sort({createdAt: -1}).skip((page - 1) * limit).limit(limit), User.countDocuments(query)]);
   res.json({items, total, page, limit});
 });
@@ -107,18 +113,17 @@ app.patch('/api/users/:id', authenticate, admin, async (req, res) => {
 app.post('/api/users/:id/password-reset', authenticate, admin, async (req, res) => {
   const id = v.parseId(req.params.id);
   if (id === String(req.user._id)) throw new ApiError(409, 'Otro administrador debe habilitar la recuperación de tu cuenta.');
-  const code = randomBytes(24).toString('base64url');
   const expiresAt = new Date(Date.now() + 15 * 60000);
-  const user = await User.findOneAndUpdate({_id: id, active: true}, {$set: {passwordResetHash: resetHash(code), passwordResetRequestedAt: null, passwordResetExpiresAt: expiresAt, passwordResetApprovedBy: req.user._id}}, {new: true});
+  const user = await User.findOneAndUpdate({_id: id, active: true}, {$set: {passwordResetRequestedAt: null, passwordResetExpiresAt: expiresAt, passwordResetApprovedBy: req.user._id}, $unset: {passwordResetHash: ''}}, {new: true});
   if (!user) throw new ApiError(404, 'Usuario activo no encontrado.');
-  res.status(201).json({code, expiresAt, user: {_id: user._id, name: user.name, email: user.email}});
+  res.status(201).json({expiresAt, user: {_id: user._id, name: user.name, username: user.username, email: user.email}});
 });
 app.delete('/api/users/:id/password-reset', authenticate, admin, async (req, res) => {
   const id = v.parseId(req.params.id);
   if (id === String(req.user._id)) throw new ApiError(409, 'Otro administrador debe gestionar la recuperación de tu cuenta.');
   const user = await User.findByIdAndUpdate(id, {$set: resetFields, $unset: {passwordResetHash: '', passwordResetApprovedBy: ''}});
   if (!user) throw new ApiError(404, 'Usuario no encontrado.');
-  res.json({message: 'Cambio de contraseña revocado. El código anterior ya no es válido.'});
+  res.json({message: 'Cambio de contraseña revocado. La autorización anterior ya no es válida.'});
 });
 async function listProducts(req, res, catalog = false) {
   const {search, page, limit} = v.listQuery.parse(req.query);
@@ -245,7 +250,7 @@ if (existsSync(frontendDist)) {
 app.use((req, res) => res.status(404).json({error: 'Ruta no encontrada.'}));
 app.use((error, req, res, next) => {
   if (error instanceof ZodError) return res.status(400).json({error: 'Revisa los datos enviados.', details: error.issues.map(i => ({field: i.path.join('.'), message: i.message}))});
-  if (error.code === 11000) return res.status(409).json({error: 'El correo o identificador de solicitud ya existe.'});
+  if (error.code === 11000) return res.status(409).json({error: 'El nombre de usuario, correo o identificador de solicitud ya existe.'});
   if (error.type === 'entity.parse.failed') return res.status(400).json({error: 'JSON inválido.'});
   if (error.type === 'entity.too.large') return res.status(413).json({error: 'Solicitud demasiado grande.'});
   if (error.status) return res.status(error.status).json({error: error.message});

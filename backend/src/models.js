@@ -1,19 +1,23 @@
 import mongoose from 'mongoose';
+import { migrateUsernames, usernamePattern } from './usernames.js';
 const { Schema, model } = mongoose;
 const money = {type: Number, min: 0, required: true};
 const count = {type: Number, min: 0, default: 0, validate: Number.isSafeInteger};
 const userSchema = new Schema({
   name: {type: String, required: true, trim: true},
+  username: {type: String, required: true, lowercase: true, trim: true, match: usernamePattern},
   email: {type: String, required: true, lowercase: true, trim: true, unique: true},
   password: {type: String, required: true, select: false},
   role: {type: String, enum: ['vendedor', 'comprador', 'administrador'], default: 'vendedor'},
   active: {type: Boolean, default: true},
   passwordResetRequestedAt: {type: Date, default: null},
   passwordResetExpiresAt: {type: Date, default: null},
+  // Solo para limpiar códigos de versiones previas; el flujo actual no los utiliza.
   passwordResetHash: {type: String, select: false},
   passwordResetApprovedBy: {type: Schema.Types.ObjectId, ref: 'User', select: false},
   tokenVersion: {type: Number, default: 0}
 }, {timestamps: true});
+userSchema.index({username: 1}, {unique: true, partialFilterExpression: {username: {$type: 'string'}}});
 userSchema.set('toJSON', {transform: (_, ret) => { delete ret.password; delete ret.tokenVersion; delete ret.passwordResetHash; delete ret.passwordResetApprovedBy; return ret; }});
 export const User = model('User', userSchema);
 export const Counter = model('Counter', new Schema({_id: String, seq: {type: Number, default: 0}}));
@@ -65,5 +69,6 @@ export async function nextCode(key, prefix, session) {
 }
 export async function initializeDatabase() {
   await Promise.all([User.init(), Product.init(), Sale.init(), Purchase.init(), Movement.init()]);
+  await migrateUsernames(User);
   for (const key of ['product', 'sale', 'purchase', 'damage']) await Counter.updateOne({_id: key}, {$setOnInsert: {seq: 0}}, {upsert: true});
 }

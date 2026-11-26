@@ -6,8 +6,8 @@ Fecha: 26 de noviembre de 2026. Entorno: Windows, Node.js 24.21.0, npm 11.19.0. 
 
 | Verificación | Resultado |
 | --- | --- |
-| Integración HTTP + Mongoose + MongoDB real temporal | 17 pruebas aprobadas |
-| Interfaz React y reglas de cálculo | 10 pruebas aprobadas |
+| Integración HTTP + Mongoose + MongoDB real temporal | 19 pruebas aprobadas |
+| Interfaz React y reglas de cálculo | 11 pruebas aprobadas |
 | Compilación de producción Vite | Aprobada |
 | Auditoría npm de dependencias instaladas | 0 vulnerabilidades reportadas al verificar |
 | Preservación de originales | Los seis archivos raíz de la rama de publicación se conservan idénticos a origin/main; original/ conserva la versión local recibida |
@@ -39,7 +39,7 @@ Fecha: 26 de noviembre de 2026. Entorno: Windows, Node.js 24.21.0, npm 11.19.0. 
 
 ## Verificación en navegador
 
-La recuperación administrativa añade seis pruebas de integración y cinco de interfaz: solicitud genérica, permisos, vencimiento, revocación, regeneración, validación de contraseña, cierre de sesiones y consumo concurrente del código; formularios de solicitud y confirmación, autorización y revocación administrativa. La suite actual tiene 27 pruebas aprobadas y compilación Vite correcta. Los casos comerciales originales siguen aprobados.
+La ampliación incluye recuperación con credenciales administrativas (sin códigos), habilitación vigente, permisos, credenciales inválidas o administrador inactivo, vencimiento, revocación, validación de contraseña, cierre de sesiones y consumo concurrente de la habilitación. Se prueban además nombres de usuario únicos y normalizados, rechazo del correo como identificador de acceso, cambio administrativo de usuario y migración idempotente de cuentas antiguas sin cambiar contraseñas. La suite actual tiene 30 pruebas aprobadas (19 de integración y 11 de interfaz), con compilación Vite correcta. Los casos comerciales originales siguen aprobados.
 
 Se usó una instancia temporal independiente con cuenta y producto de prueba. Se inició sesión, se creó PRD-000001 con neto 100, IVA 19%, impuesto adicional 5% y ganancia 30%. El precio sugerido fue 161,20. Una compra de diez unidades generó COM-000001 por 1.240. Una venta de dos unidades con 10% por línea y 20% general generó VEN-000001 por 232,13. Un daño de una unidad dejó siete disponibles y una dañada. Se verificaron comprobantes, actualización de inventario, navegación y carga de Swagger. La vista se comprobó en el tamaño disponible del navegador; no se afirma una matriz exhaustiva de dispositivos.
 

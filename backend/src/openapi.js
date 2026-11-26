@@ -8,7 +8,9 @@ const property = (type, extra = {}) => ({type, ...extra});
 const num = (max = 1000000000) => property('number', {minimum: 0, maximum: max});
 const str = property('string');
 const object = (properties, required = []) => ({type: 'object', properties, required, additionalProperties: false});
-const credentials = {email: property('string', {format: 'email'}), password: property('string', {minLength: 10, maxLength: 72})};
+const username = property('string', {minLength: 3, maxLength: 32, pattern: '^[a-zA-Z0-9][a-zA-Z0-9._-]{2,31}$', description: 'Nombre de usuario único; se normaliza a minúsculas; no es un correo'});
+const contactEmail = property('string', {format: 'email', description: 'Dato de contacto; no se usa para iniciar sesión'});
+const credentials = {username, password: property('string', {minLength: 10, maxLength: 72})};
 const product = {name: property('string', {minLength: 1, maxLength: 160}), category: str, netPrice: num(), vat: num(100), tax: num(100), margin: num(1000), salePrice: num(), minStock: property('integer', {minimum: 0, maximum: 1000000})};
 const operationLine = {product: property('string', {pattern: '^[a-fA-F0-9]{24}$'}), quantity: property('integer', {minimum: 1, maximum: 1000000})};
 const base = {requestId: property('string', {format: 'uuid'}), note: property('string', {maxLength: 500})};
@@ -25,11 +27,11 @@ endpoint('/auth/login', 'post', 'Sesión', 'Inicio de sesión; devuelve cookie J
 endpoint('/auth/me', 'get', 'Sesión', 'Usuario autenticado', object({user: ref('User')}));
 endpoint('/auth/logout', 'post', 'Sesión', 'Revoca todas las sesiones del usuario', object({message: str}));
 endpoint('/auth/password-reset/request', 'post', 'Sesión', 'Solicita autorización administrativa; respuesta genérica sin revelar cuentas; no envía correo', object({message: str}), 'ResetRequest', {public: true, status: 202});
-endpoint('/auth/password-reset/confirm', 'post', 'Sesión', 'Cambia contraseña con código autorizado de un solo uso; revoca todas las sesiones', object({message: str}), 'ResetPassword', {public: true, status: 200});
+endpoint('/auth/password-reset/confirm', 'post', 'Sesión', 'Cambia contraseña con habilitación previa y nombre de usuario/contraseña de administrador activo; consume autorización y revoca sesiones', object({message: str}), 'ResetPassword', {public: true, status: 200});
 endpoint('/users', 'get', 'Usuarios', 'Administrador: lista paginada de usuarios', page('User'), null, {parameters: params});
 endpoint('/users', 'post', 'Usuarios', 'Administrador: crea cuenta con rol', object({user: ref('User')}), 'UserCreation');
 endpoint('/users/{id}', 'patch', 'Usuarios', 'Administrador: rol y estado; prohíbe modificar cuenta propia', object({user: ref('User')}), 'UserUpdate', {parameters: [idParam]});
-endpoint('/users/{id}/password-reset', 'post', 'Usuarios', 'Administrador: habilita cambio durante 15 minutos y entrega código una sola vez; otro administrador para cuenta propia', object({code: str, expiresAt: property('string', {format: 'date-time'}), user: object({_id: str, name: str, email: str})}), null, {parameters: [idParam]});
+endpoint('/users/{id}/password-reset', 'post', 'Usuarios', 'Administrador: habilita cambio durante 15 minutos, sin códigos; otro administrador para cuenta propia', object({expiresAt: property('string', {format: 'date-time'}), user: object({_id: str, name: str, username, email: contactEmail})}), null, {parameters: [idParam]});
 endpoint('/users/{id}/password-reset', 'delete', 'Usuarios', 'Administrador: revoca autorización y solicitud de cambio', object({message: str}), null, {parameters: [idParam]});
 endpoint('/catalog', 'get', 'Ventas', 'Vendedor/administrador: catálogo sin precios de compra', page('CatalogProduct'), null, {parameters: params});
 endpoint('/products', 'get', 'Inventario', 'Comprador/administrador: catálogo completo', page('Product'), null, {parameters: params});
@@ -50,13 +52,13 @@ export const openapi = {
     securitySchemes: {cookieAuth: {type: 'apiKey', in: 'cookie', name: 'session'}, bearerAuth: {type: 'http', scheme: 'bearer', bearerFormat: 'JWT'}},
     schemas: {
       Error: object({error: str, details: array(object({field: str, message: str}))}),
-      Credentials: object(credentials, ['email', 'password']), Registration: object({...credentials, name: str}, ['email', 'password', 'name']),
-      UserCreation: object({...credentials, name: str, role: ref('Role')}, ['email', 'password', 'name', 'role']),
-      UserUpdate: object({role: ref('Role'), active: property('boolean')}, ['role', 'active']),
-      ResetRequest: object({email: credentials.email}, ['email']),
-      ResetPassword: object({email: credentials.email, code: property('string', {pattern: '^[A-Za-z0-9_-]{32}$'}), password: credentials.password, confirmPassword: {...credentials.password, description: 'Debe coincidir con password'}}, ['email', 'code', 'password', 'confirmPassword']),
+      Credentials: object(credentials, ['username', 'password']), Registration: object({...credentials, name: str, email: contactEmail}, ['username', 'email', 'password', 'name']),
+      UserCreation: object({...credentials, name: str, email: contactEmail, role: ref('Role')}, ['username', 'email', 'password', 'name', 'role']),
+      UserUpdate: object({username, role: ref('Role'), active: property('boolean')}, ['role', 'active']),
+      ResetRequest: object({username}, ['username']),
+      ResetPassword: object({username, adminUsername: {...username, description: 'Nombre de usuario de un administrador activo distinto de la cuenta a recuperar'}, adminPassword: {...credentials.password, description: 'Contraseña actual del administrador; solo se verifica, no se almacena'}, password: credentials.password, confirmPassword: {...credentials.password, description: 'Debe coincidir con password'}}, ['username', 'adminUsername', 'adminPassword', 'password', 'confirmPassword']),
       Role: property('string', {enum: ['vendedor', 'comprador', 'administrador']}),
-      User: object({_id: str, name: str, email: str, role: ref('Role'), active: property('boolean'), passwordResetRequestedAt: property('string', {format: 'date-time', nullable: true}), passwordResetExpiresAt: property('string', {format: 'date-time', nullable: true}), createdAt: property('string', {format: 'date-time'}), updatedAt: str, __v: num()}),
+      User: object({_id: str, name: str, username, email: contactEmail, role: ref('Role'), active: property('boolean'), passwordResetRequestedAt: property('string', {format: 'date-time', nullable: true}), passwordResetExpiresAt: property('string', {format: 'date-time', nullable: true}), createdAt: property('string', {format: 'date-time'}), updatedAt: str, __v: num()}),
       ProductInput: object(product, ['name', 'netPrice']),
       CatalogProduct: object({_id: str, code: str, name: str, category: str, salePrice: num(), stock: num(), minStock: num()}),
       Product: object({...product, _id: str, code: str, stock: num(), damaged: num(), suggestedPrice: num(), active: property('boolean'), createdAt: str, updatedAt: str, __v: num()}),

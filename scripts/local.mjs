@@ -59,6 +59,7 @@ async function ready(url,json=false) {
 try {
   if(await occupied(apiPort)||await occupied(webPort))throw new Error(`El puerto ${apiPort} o ${webPort} ya está ocupado. Si NexusStock ya está iniciado, abre http://127.0.0.1:${webPort}.`);
   if(!env.JWT_SECRET||env.JWT_SECRET.length<32||env.JWT_SECRET.startsWith('REEMPLAZAR'))setConfig('JWT_SECRET',randomBytes(48).toString('hex'));
+  if(!env.ADMIN_USERNAME)setConfig('ADMIN_USERNAME','admin');
   const localUri='mongodb://127.0.0.1:27017/nexusstock?replicaSet=rs0&directConnection=true';
   if(env.MONGODB_URI===localUri&&!(await occupied(27017))) {
     const dbPath=join(root,'.mongo','db');mkdirSync(dbPath,{recursive:true});
@@ -74,7 +75,7 @@ try {
   if(!admin) {
     if(!env.ADMIN_PASSWORD||env.ADMIN_PASSWORD.startsWith('REEMPLAZAR'))setConfig('ADMIN_PASSWORD',randomBytes(18).toString('base64url'));
     execFileSync(process.execPath,['backend/src/seed.js'],{cwd:root,stdio:'inherit',windowsHide:true});
-    console.log('Cuenta inicial preparada. Correo y contraseña: ADMIN_EMAIL y ADMIN_PASSWORD en backend/.env.');
+    console.log('Cuenta inicial preparada. Usuario y contraseña: ADMIN_USERNAME y ADMIN_PASSWORD en backend/.env. El correo es un dato de contacto.');
   } else console.log('Se conserva la cuenta administradora existente y todos sus datos.');
   launch(['backend/src/server.js'],root,{HOST:'127.0.0.1',NODE_ENV:'development'});
   const require=createRequire(import.meta.url);

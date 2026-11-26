@@ -4,7 +4,7 @@ Los modelos e índices se definen en `backend/src/models.js` y se inicializan al
 
 | Colección | Contenido | Restricciones principales |
 | --- | --- | --- |
-| users | Identidad, hash bcrypt, rol, estado y versión de sesión | Correo único; nunca se devuelve el hash |
+| users | Nombre de usuario, identidad, correo de contacto, hash bcrypt, rol, estado y versión de sesión | Usuario único normalizado; correo de contacto único; nunca se devuelve el hash |
 | products | Código, precios, impuestos, ganancia, stock disponible, daños y estado | Código único; stock entero no negativo |
 | counters | Consecutivos de productos, ventas, compras y daños | Un contador por tipo; incremento transaccional |
 | sales | Líneas históricas, descuentos, usuario y totales | requestId y número únicos |

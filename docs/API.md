@@ -8,14 +8,14 @@ Contrato ejecutable: `backend/src/openapi.js`. Con la API iniciada, abre [Swagge
 | --- | --- | --- |
 | GET | /health | Público, 200 si MongoDB está disponible; 503 en caso contrario |
 | GET | /openapi.json, /docs | Contrato y documentación interactiva |
-| POST | /auth/register | Público; nombre, correo, clave; crea vendedor |
-| POST | /auth/login | Público; correo, clave; establece cookie JWT |
-| POST | /auth/password-reset/request | Público; email; registra solicitud y responde 202 sin revelar si la cuenta existe |
-| POST | /auth/password-reset/confirm | Público; email, code, password y confirmPassword; cambia clave solo con código autorizado vigente |
+| POST | /auth/register | Público; name, username, email de contacto y password; crea vendedor |
+| POST | /auth/login | Público; username y password; establece cookie JWT; no admite email como identificador |
+| POST | /auth/password-reset/request | Público; username; registra solicitud y responde 202 sin revelar cuentas |
+| POST | /auth/password-reset/confirm | Público; username, adminUsername, adminPassword, password y confirmPassword; exige habilitación vigente y administrador activo |
 | GET | /auth/me | Sesión actual |
 | POST | /auth/logout | Revoca sesiones y elimina cookie |
 | GET, POST | /users | Administrador; lista o crea cuentas con rol |
-| PATCH | /users/:id | Administrador; cambia role y active; no cuenta propia |
+| PATCH | /users/:id | Administrador; cambia username opcional, role y active; no cuenta propia |
 | POST, DELETE | /users/:id/password-reset | Administrador; habilita cambio durante quince minutos o revoca; otro administrador para cuenta propia |
 | GET | /catalog | Vendedor/administrador; catálogo sin costos |
 | GET, POST | /products | Comprador/administrador; lista o crea producto |
@@ -33,7 +33,7 @@ Las solicitudes de escritura son JSON con Content-Type application/json. El serv
 
 ## Ejercicio completo en Swagger
 
-1. Usa POST /auth/login con el administrador creado. El navegador conserva la cookie automáticamente.
+1. Usa POST /auth/login con username y password del administrador creado. El navegador conserva la cookie automáticamente. El correo es solo un dato de contacto.
 2. Crea un producto con POST /products y toma su _id.
 3. Registra una compra usando ese _id y un requestId UUID nuevo.
 4. Registra una venta. Para demostrar descuentos sucesivos usa una línea con 10% y descuento general 20%.

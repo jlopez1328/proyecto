@@ -4,7 +4,7 @@ export async function api(path, options = {}) {
   if (!res.ok) {
     const error = new Error([data.error || 'No se pudo completar la solicitud.', ...(data.details || []).map(d => `${d.field}: ${d.message}`)].join(' '));
     error.status = res.status;
-    if (res.status === 401 && !['/auth/login', '/auth/register', '/auth/me'].includes(path)) window.dispatchEvent(new Event('session-expired'));
+    if (res.status === 401 && !['/auth/login', '/auth/register', '/auth/me', '/auth/password-reset/request', '/auth/password-reset/confirm'].includes(path)) window.dispatchEvent(new Event('session-expired'));
     throw error;
   }
   return data;
