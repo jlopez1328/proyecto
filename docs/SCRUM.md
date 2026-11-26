@@ -23,7 +23,7 @@ Las cifras son estimaciones iniciales; Sprint 4 debe ajustarse según capacidad 
 
 Usa los estados Todo, In Progress y Done del campo Status. Crea vistas de tablero por estado, tabla por Sprint y lista de bugs. Mantén las historias pequeñas y limita trabajo en progreso a una historia por persona. Cada pull request enlaza el issue con Closes #n. En Project configura flujos nativos para pasar elementos cerrados a Done y reabiertos a Todo.
 
-El tablero privado real NexusStock · Scrum está enlazado a jlopez1328/proyecto, con las 15 historias abiertas y los campos Sprint, Puntos y Status. El workflow project.yml agrega issues y pull requests al tablero cuando esté guardado ADD_TO_PROJECT_PAT; PROJECT_URL ya está configurada. Los eventos de nuevos issues se atenderán tras integrar el workflow en main. CI ya verifica pruebas y compilación en la rama de publicación y PR #1. El manual GITHUB.md explica el paso manual de la credencial y el estado de publicación.
+El tablero privado real NexusStock · Scrum está enlazado a jlopez1328/proyecto, con las 15 historias abiertas y los campos Sprint, Puntos y Status. El workflow project.yml agrega issues y pull requests al tablero cuando esté guardado ADD_TO_PROJECT_PAT; PROJECT_URL ya está configurada. La PR #1 fue fusionada desde la web por jlopez1328; los ajustes posteriores se mantienen abiertos en PR #27. CI verifica pruebas y compilación en la rama de publicación. El manual GITHUB.md explica el paso manual de la credencial y el estado de publicación.
 
 ## Definition of Ready
 

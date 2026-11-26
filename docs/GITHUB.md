@@ -5,12 +5,13 @@ Repositorio: [jlopez1328/proyecto](https://github.com/jlopez1328/proyecto), cons
 ## Publicación preparada para revisión
 
 - Rama publicada: `feature/publicacion-nexusstock`, basada en el historial remoto existente.
-- Solicitud de revisión: [PR #1](https://github.com/jlopez1328/proyecto/pull/1), abierta hacia main y sin fusionar.
+- Sistema inicial: [PR #1](https://github.com/jlopez1328/proyecto/pull/1), fusionada desde la web por jlopez1328 durante esta configuración.
+- Ajustes restantes de automatización: [PR #27](https://github.com/jlopez1328/proyecto/pull/27), abierta hacia main y sin fusionar.
 - Los seis archivos originales del repositorio se conservan sin cambios. La versión local recibida sigue en original/ y en la rama local anterior feature/gestion-comercial.
 - No se publican .env, node_modules, bases locales, credenciales ni archivos de pruebas temporales.
 - GitHub CLI quedó autenticado como jlopez1328 en el almacén seguro del sistema, con acceso al repositorio y a Projects. Ninguna credencial se incluye en el código.
 
-La rama main remota permanece en su commit original af3210e64fe3692e6c9cd5730bdc2f26a7f3d9cc. La revisión debe completarse antes de fusionar. No uses --force sobre ramas compartidas.
+La cuenta jlopez1328 fusionó la PR #1 desde la web a las 12:27 del 26 de noviembre de 2026 (America/Bogota), creando 3ae5ae5f29e77b4bc6bbe238d72c229f131d7250 en main. Esta ejecución no ordenó esa fusión y conserva ese cambio externo. La PR #27 queda abierta para revisar los ajustes posteriores. No uses --force sobre ramas compartidas.
 
 ## GitHub Actions
 
@@ -18,6 +19,7 @@ NexusStock CI ejecuta instalación reproducible, 11 pruebas de integración sobr
 
 - [CI de la solicitud de revisión](https://github.com/jlopez1328/proyecto/actions/runs/45867492385).
 - [CI de la publicación inicial](https://github.com/jlopez1328/proyecto/actions/runs/45867427413).
+- [CI de los ajustes de automatización](https://github.com/jlopez1328/proyecto/actions/runs/45868463855).
 
 Consulta la ejecución más reciente en la pestaña Actions o en los checks de la PR. El flujo no despliega en producción y no requiere credenciales de tu MongoDB.
 
@@ -44,7 +46,7 @@ La variable de repositorio PROJECT_URL está configurada con https://github.com/
 3. Nombre: ADD_TO_PROJECT_PAT. Pega el token directamente en Secret y guarda. No lo compartas por chat ni lo incluyas en archivos.
 4. Rota la credencial antes de su vencimiento y revócala cuando deje de ser necesaria.
 
-El workflow agrega issues abiertos/reabiertos y PRs abiertas/reabiertas/actualizadas al tablero. Mientras falte el secreto, informa la configuración pendiente sin fallar las comprobaciones del sistema. La automatización de nuevos issues requiere integrar el workflow en main; esta entrega mantiene la PR abierta. La inclusión de la PR existente se puede comprobar con una actualización de su rama cuando esté guardado el secreto.
+El workflow agrega issues abiertos/reabiertos y PRs abiertas/reabiertas/actualizadas al tablero. La PR #27 incluye una comprobación que informa la falta del secreto sin fallar las verificaciones del sistema. Main contiene la versión inicial del workflow tras la fusión externa de la PR #1; el secreto es necesario para que esa automatización funcione. La incorporación de la PR #27 se puede comprobar con una actualización de su rama cuando esté guardado el secreto. La integración de las mejoras posteriores sigue pendiente de revisión.
 
 GITHUB_TOKEN por sí solo no alcanza Projects. Referencias oficiales: [Actions con Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/automating-projects-using-actions), [acción add-to-project](https://github.com/actions/add-to-project), [GitHub CLI Projects](https://cli.github.com/manual/gh_project).
 
