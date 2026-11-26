@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 dotenv.config({path: fileURLToPath(new URL('../.env', import.meta.url)), quiet: true});
 export const config = {
+  host: process.env.HOST || '127.0.0.1',
   port: Number(process.env.PORT || 4000),
   mongoUri: process.env.MONGODB_URI,
   secret: process.env.JWT_SECRET,
