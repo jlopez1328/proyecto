@@ -1,0 +1,419 @@
+/* =========================================================
+   CONFIGURACIÓN GENERAL
+   ========================================================= */
+
+/* Selecciona todos los elementos de la página */
+* {
+    margin: 0; /* Elimina los márgenes que coloca el navegador por defecto */
+    padding: 0; /* Elimina los espacios internos que coloca el navegador */
+    box-sizing: border-box; /* Hace que padding y borde se incluyan dentro del tamaño */
+}
+
+/* Modifica todo el cuerpo de la página */
+body {
+    font-family: Arial, Helvetica, sans-serif; /* Define el tipo de letra */
+    color: #10223f; /* Define el color principal de los textos */
+    background-color: #ffffff; /* Coloca el fondo de la página en blanco */
+}
+
+/* Modifica todos los enlaces */
+a {
+    text-decoration: none; /* Quita la línea que aparece debajo de los enlaces */
+}
+
+/* Hace que las imágenes no superen el tamaño de su contenedor */
+img {
+    max-width: 100%; /* La imagen puede ocupar máximo el 100% de su espacio */
+    display: block; /* Evita pequeños espacios que aparecen debajo de las imágenes */
+}
+
+/* =========================================================
+   CONTENEDOR PRINCIPAL DEL LOGIN
+   ========================================================= */
+
+/* Controla las dos partes principales de la pantalla */
+.login {
+    min-height: 100vh; /* Hace que el login ocupe como mínimo toda la pantalla */
+    display: grid; /* Activa CSS Grid */
+    grid-template-columns: 42% 58%; /* Crea una columna izquierda y otra derecha */
+}
+
+/* =========================================================
+   LADO IZQUIERDO
+   ========================================================= */
+
+/* Contiene el logo y el formulario */
+.acceso {
+    min-height: 100vh; /* Hace que esta sección ocupe toda la altura de la pantalla */
+    padding: 50px 11%; /* Agrega espacio interno arriba/abajo y a los lados */
+    background-color: #ffffff; /* Coloca fondo blanco */
+    display: flex; /* Activa Flexbox */
+    flex-direction: column; /* Coloca el logo y formulario uno debajo del otro */
+}
+
+/* =========================================================
+   LOGO
+   ========================================================= */
+
+/* Controla el enlace que contiene todo el logo */
+.logo {
+    display: flex; /* Coloca el carrito y los textos uno al lado del otro */
+    align-items: center; /* Centra verticalmente el carrito con el texto */
+    gap: 12px; /* Deja espacio entre el carrito y el nombre */
+    width: fit-content; /* Hace que el enlace ocupe solamente lo necesario */
+}
+
+/* Controla el dibujo SVG del carrito */
+.logo-carrito {
+    width: 48px; /* Define el ancho del carrito */
+    height: 48px; /* Define la altura del carrito */
+    color: #0c6ff9; /* Define el color azul del carrito */
+    flex-shrink: 0; /* Evita que el carrito se haga más pequeño */
+}
+
+/* Modifica las ruedas del carrito */
+.logo-carrito circle {
+    fill: #0c6ff9; /* Rellena las ruedas con color azul */
+}
+
+/* Contiene NexusStock y la frase inferior */
+.texto-logo {
+    display: flex; /* Activa Flexbox */
+    flex-direction: column; /* Coloca los dos textos uno debajo del otro */
+    align-items: flex-start; /* Alinea los textos hacia la izquierda */
+}
+
+/* Modifica el texto NexusStock */
+.nombre-logo {
+    display: block; /* Hace que el nombre se comporte como un bloque */
+    font-size: 29px; /* Cambia el tamaño de NexusStock */
+    font-weight: bold; /* Coloca NexusStock en negrita */
+    line-height: 1; /* Reduce el espacio vertical alrededor del texto */
+    color: #102f61; /* Coloca el nombre en azul oscuro */
+}
+
+/* Modifica Gestiona. Vende. Crece. */
+.frase-logo {
+    display: block; /* Hace que la frase ocupe su propia línea */
+    margin-top: 5px; /* Separa ligeramente la frase del nombre */
+    font-size: 14px; /* Define un tamaño más pequeño */
+    line-height: 1.2; /* Controla la altura de la línea */
+    color: #60769a; /* Coloca un azul grisáceo */
+}
+
+/* =========================================================
+   FORMULARIO
+   ========================================================= */
+
+/* Controla todo el bloque del formulario */
+.formulario-login {
+    width: 100%; /* Permite utilizar todo el ancho disponible */
+    max-width: 510px; /* Evita que el formulario sea demasiado ancho */
+    margin: auto 0; /* Lo centra verticalmente dentro del lado izquierdo */
+}
+
+/* Modifica el título Iniciar sesión */
+.titulo-login h1 {
+    font-size: 46px; /* Hace grande el título */
+    line-height: 1.1; /* Controla la separación vertical */
+    margin-bottom: 10px; /* Deja espacio debajo del título */
+    color: #102f61; /* Coloca el título en azul oscuro */
+}
+
+/* Modifica el texto que está debajo del título */
+.titulo-login p {
+    font-size: 17px; /* Define el tamaño del texto */
+    color: #60769a; /* Coloca el texto en azul grisáceo */
+    margin-bottom: 40px; /* Separa el texto de los campos del formulario */
+}
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+/* Controla los elementos que están dentro del formulario */
+form {
+    display: flex; /* Activa Flexbox */
+    flex-direction: column; /* Coloca los elementos uno debajo del otro */
+}
+
+/* Modifica los títulos Correo electrónico y Contraseña */
+label {
+    margin-bottom: 9px; /* Separa el label del campo */
+    font-size: 16px; /* Define el tamaño de la letra */
+    font-weight: bold; /* Coloca el texto en negrita */
+    color: #102f61; /* Coloca el texto en azul oscuro */
+}
+
+/* Modifica los campos de correo y contraseña */
+input {
+    width: 100%; /* Hace que el campo ocupe todo el ancho disponible */
+    height: 60px; /* Define la altura del campo */
+    padding: 0 18px; /* Agrega espacio dentro del campo a izquierda y derecha */
+    margin-bottom: 27px; /* Deja espacio después de cada campo */
+    border: 1px solid #cbd8eb; /* Crea un borde gris azulado */
+    border-radius: 9px; /* Redondea las esquinas */
+    background-color: #ffffff; /* Coloca el fondo del campo en blanco */
+    color: #263d5c; /* Define el color del texto que escriba el usuario */
+    font-size: 16px; /* Define el tamaño del texto */
+    outline: none; /* Quita el borde automático al seleccionar el campo */
+    transition: 0.3s; /* Hace suaves los cambios de estilo */
+}
+
+/* Modifica solamente el texto de ejemplo dentro de los inputs */
+input::placeholder {
+    color: #8294af; /* Cambia el color del placeholder */
+}
+
+/* Se aplica cuando haces clic dentro de un input */
+input:focus {
+    border-color: #0c6ff9; /* Cambia el borde a azul */
+    box-shadow: 0 0 0 3px rgba(12, 111, 249, 0.10); /* Agrega un brillo azul suave */
+}
+
+/* =========================================================
+   RECUPERAR CONTRASEÑA
+   ========================================================= */
+
+/* Modifica ¿Olvidaste tu contraseña? */
+.recuperar {
+    align-self: flex-end; /* Mueve el enlace hacia la derecha */
+    margin-top: -10px; /* Reduce el espacio que queda arriba */
+    margin-bottom: 30px; /* Deja espacio antes del botón */
+    color: #0875f5; /* Coloca el enlace en azul */
+    font-size: 15px; /* Define el tamaño del texto */
+}
+
+/* Se ejecuta cuando pasas el mouse por el enlace */
+.recuperar:hover {
+    text-decoration: underline; /* Coloca una línea debajo del texto */
+}
+
+/* =========================================================
+   BOTÓN INICIAR SESIÓN
+   ========================================================= */
+
+/* Modifica el botón del formulario */
+button {
+    width: 100%; /* Hace que el botón ocupe todo el ancho */
+    height: 60px; /* Define la altura del botón */
+    border: none; /* Quita el borde predeterminado */
+    border-radius: 9px; /* Redondea las esquinas */
+    background-color: #0875f5; /* Coloca el botón en azul */
+    color: #ffffff; /* Coloca el texto en blanco */
+    font-size: 17px; /* Define el tamaño del texto */
+    font-weight: bold; /* Coloca el texto en negrita */
+    cursor: pointer; /* Muestra la mano cuando pasas el mouse */
+    transition: 0.3s; /* Hace suave el efecto del hover */
+}
+
+/* Se ejecuta cuando pasas el mouse por el botón */
+button:hover {
+    background-color: #075fc5; /* Oscurece el azul */
+    transform: translateY(-2px); /* Sube ligeramente el botón */
+    box-shadow: 0 8px 18px rgba(8, 117, 245, 0.20); /* Agrega una sombra */
+}
+
+/* =========================================================
+   TEXTO DE CONTACTO
+   ========================================================= */
+
+/* Modifica ¿No tienes una cuenta? */
+.registro {
+    margin-top: 45px; /* Separa el texto del botón */
+    text-align: center; /* Centra el contenido */
+    color: #60769a; /* Define el color del texto */
+    font-size: 15px; /* Define el tamaño */
+}
+
+/* Modifica únicamente Contáctanos */
+.registro a {
+    margin-left: 5px; /* Separa Contáctanos del texto anterior */
+    color: #0875f5; /* Coloca el enlace en azul */
+    font-weight: bold; /* Coloca el enlace en negrita */
+}
+
+/* Efecto cuando pasas el mouse por Contáctanos */
+.registro a:hover {
+    text-decoration: underline; /* Subraya el enlace */
+}
+
+/* =========================================================
+   LADO DERECHO DEL LOGIN
+   ========================================================= */
+
+/* Controla toda la sección derecha */
+.informacion-login {
+    min-height: 100vh; /* Hace que ocupe toda la altura de la pantalla */
+    position: relative; /* Permite controlar mejor los elementos internos */
+    overflow: hidden; /* Evita que una imagen sobresalga de esta sección */
+    padding: 70px 8% 45px; /* Agrega espacio dentro de la sección */
+    background: linear-gradient(
+        135deg,
+        #eaf5ff,
+        #cce5ff
+    ); /* Crea el fondo degradado azul */
+    display: flex; /* Activa Flexbox */
+    flex-direction: column; /* Coloca texto, imagen y beneficios verticalmente */
+}
+
+/* =========================================================
+   TEXTO DEL LADO DERECHO
+   ========================================================= */
+
+/* Controla el bloque de texto superior */
+.mensaje-login {
+    position: relative; /* Permite mantenerlo por encima de otros elementos */
+    z-index: 2; /* Coloca el texto delante de la imagen */
+    max-width: 600px; /* Limita el ancho del texto */
+}
+
+/* Modifica Todo tu negocio en un solo lugar */
+.mensaje-login h2 {
+    font-size: 48px; /* Hace grande el título */
+    line-height: 1.05; /* Reduce el espacio entre las líneas */
+    color: #102f61; /* Coloca el texto en azul oscuro */
+    margin-bottom: 20px; /* Separa el título del párrafo */
+}
+
+/* Modifica solamente en un solo lugar */
+.mensaje-login h2 span {
+    display: block; /* Obliga al texto a aparecer debajo */
+    color: #0875f5; /* Coloca esta parte en azul brillante */
+}
+
+/* Modifica la explicación debajo del título */
+.mensaje-login p {
+    max-width: 540px; /* Limita el ancho del párrafo */
+    font-size: 18px; /* Define el tamaño del texto */
+    line-height: 1.6; /* Aumenta la separación entre líneas */
+    color: #526d91; /* Coloca el texto en azul grisáceo */
+}
+
+/* =========================================================
+   IMAGEN
+   ========================================================= */
+
+/* Controla el contenedor de la imagen */
+.imagen-login {
+    flex: 1; /* Hace que aproveche el espacio disponible */
+    display: flex; /* Activa Flexbox */
+    align-items: center; /* Centra verticalmente la imagen */
+    justify-content: center; /* Centra horizontalmente la imagen */
+    margin: 20px 0; /* Agrega separación arriba y abajo */
+}
+
+/* Modifica la imagen del sistema */
+.imagen-login img {
+    width: 100%; /* Permite que la imagen use el ancho disponible */
+    max-width: 780px; /* Evita que sea demasiado grande */
+    max-height: 520px; /* Limita la altura máxima */
+    object-fit: contain; /* Evita que la imagen se deforme */
+}
+
+/* =========================================================
+   BENEFICIOS INFERIORES
+   ========================================================= */
+
+/* Controla los tres beneficios */
+.beneficios-login {
+    display: grid; /* Activa CSS Grid */
+    grid-template-columns: repeat(3, 1fr); /* Crea tres columnas iguales */
+    gap: 20px; /* Deja espacio entre los beneficios */
+    position: relative; /* Permite controlar su posición */
+    z-index: 2; /* Mantiene los beneficios delante de otros elementos */
+}
+
+/* Modifica cada beneficio */
+.beneficios-login article {
+    padding: 10px 18px; /* Agrega espacio interno */
+    border-right: 1px solid #b9d3ee; /* Coloca una línea divisoria */
+}
+
+/* Selecciona solamente el último beneficio */
+.beneficios-login article:last-child {
+    border-right: none; /* Quita la línea del último elemento */
+}
+
+/* Modifica el título de cada beneficio */
+.beneficios-login h3 {
+    font-size: 15px; /* Define el tamaño del texto */
+    line-height: 1.4; /* Controla la separación entre líneas */
+    color: #17365f; /* Coloca el texto en azul oscuro */
+}
+
+/* =========================================================
+   TABLETS
+   ========================================================= */
+
+/* Estas reglas se activan cuando la pantalla mide 1000px o menos */
+@media (max-width: 1000px) {
+    /* Modifica la estructura principal */
+    .login {
+        grid-template-columns: 1fr; /* Cambia las dos columnas por una sola */
+    }
+
+    /* Modifica el lado izquierdo */
+    .acceso {
+        min-height: 100vh; /* Mantiene toda la altura */
+        padding: 40px 8%; /* Reduce el espacio lateral */
+    }
+
+    /* Centra mejor el formulario */
+    .formulario-login {
+        margin: auto; /* Centra el formulario */
+    }
+
+    /* Oculta la sección decorativa derecha */
+    .informacion-login {
+        display: none; /* No muestra el lado derecho en pantallas pequeñas */
+    }
+}
+
+/* =========================================================
+   CELULARES
+   ========================================================= */
+
+/* Estas reglas se activan cuando la pantalla mide 550px o menos */
+@media (max-width: 550px) {
+    /* Reduce los espacios del panel */
+    .acceso {
+        padding: 30px 7%; /* Reduce el espacio alrededor del contenido */
+    }
+
+    /* Reduce el carrito */
+    .logo-carrito {
+        width: 38px; /* Reduce el ancho */
+        height: 38px; /* Reduce la altura */
+    }
+
+    /* Reduce NexusStock */
+    .nombre-logo {
+        font-size: 23px; /* Reduce el tamaño del nombre */
+    }
+
+    /* Reduce la frase del logo */
+    .frase-logo {
+        font-size: 11px; /* Reduce el tamaño de la frase */
+    }
+
+    /* Reduce el título */
+    .titulo-login h1 {
+        font-size: 36px; /* Hace Iniciar sesión más pequeño */
+    }
+
+    /* Reduce la descripción */
+    .titulo-login p {
+        font-size: 15px; /* Reduce el texto descriptivo */
+    }
+
+    /* Reduce la altura de los campos */
+    input {
+        height: 55px; /* Hace los inputs un poco más pequeños */
+    }
+
+    /* Reduce la altura del botón */
+    button {
+        height: 55px; /* Hace el botón un poco más pequeño */
+    }
+}

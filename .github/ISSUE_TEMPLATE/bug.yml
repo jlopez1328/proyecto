@@ -1,0 +1,24 @@
+name: Error
+description: Reportar un comportamiento incorrecto
+title: '[Error] '
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducir
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultado esperado y obtenido
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Navegador, rol y versión
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidencia sin información sensible

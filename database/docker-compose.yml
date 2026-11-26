@@ -1,0 +1,25 @@
+services:
+  mongo:
+    image: mongo:7.0.24
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - nexusstock-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  mongo-init:
+    image: mongo:7.0.24
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./init-replica.js:/init-replica.js:ro
+    entrypoint: ["mongosh", "--host", "mongo:27017", "--quiet", "/init-replica.js"]
+    restart: "no"
+volumes:
+  nexusstock-data:
