@@ -12,5 +12,5 @@
     "package": "node scripts/package.mjs",
     "check": "npm test && npm run build"
   },
-  "devDependencies": {"concurrently": "^9.2.1"}
+  "devDependencies": {"concurrently": "^10.0.7"}
 }
