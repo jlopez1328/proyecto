@@ -1,0 +1,30 @@
+import React from 'react';
+import {beforeEach, expect, test, vi} from 'vitest';
+import {act, render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {MemoryRouter} from 'react-router-dom';
+import {AdminNotifications} from './vista/components/AdminNotifications';
+import {api} from './modelo/api';
+vi.mock('./modelo/api',async load=>({...await load(),api:vi.fn()}));
+beforeEach(()=>{api.mockReset();});
+test('notifica solicitudes nuevas y enlaza a la autorización en Usuarios',async()=>{
+  api.mockResolvedValueOnce({items:[],total:0});
+  render(<MemoryRouter><AdminNotifications/></MemoryRouter>);
+  await screen.findByRole('button',{name:'Solicitudes de cambio de contraseña: 0'});
+  api.mockResolvedValue({items:[{_id:'1',name:'Persona',username:'persona'}],total:1});
+  await act(async()=>{window.dispatchEvent(new Event('focus'));});
+  const bell=await screen.findByRole('button',{name:'Solicitudes de cambio de contraseña: 1'});
+  expect(screen.getByRole('status').textContent).toContain('1 solicitudes pendientes');
+  await userEvent.click(bell);
+  expect(screen.getByRole('link',{name:'Revisar solicitud de persona'}).getAttribute('href')).toBe('/app/usuarios');
+  api.mockResolvedValue({items:[],total:0});
+  await act(async()=>{window.dispatchEvent(new Event('password-reset-updated'));});
+  expect(await screen.findByRole('button',{name:'Solicitudes de cambio de contraseña: 0'})).toBeTruthy();
+  expect(screen.getByText('No hay solicitudes pendientes.')).toBeTruthy();
+});
+test('muestra un aviso cuando falla la consulta',async()=>{
+  api.mockRejectedValue(new Error('Sin conexión'));
+  render(<MemoryRouter><AdminNotifications/></MemoryRouter>);
+  await userEvent.click(screen.getByRole('button',{name:'Solicitudes de cambio de contraseña: 0'}));
+  expect((await screen.findByRole('alert')).textContent).toContain('No se pudieron consultar');
+});

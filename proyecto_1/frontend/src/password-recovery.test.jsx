@@ -1,0 +1,58 @@
+import React from 'react';
+import { beforeEach, test, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { RecoveryPage, PasswordResetControl } from './vista/pages/PasswordRecovery';
+import { Session } from './modelo/session';
+import { api } from './modelo/api';
+vi.mock('./modelo/api',async load=>({...await load(),api:vi.fn()}));
+beforeEach(()=>{api.mockReset();});
+function page(){return render(<Session.Provider value={{user:null,setUser:vi.fn()}}><MemoryRouter><RecoveryPage/></MemoryRouter></Session.Provider>);}
+async function fill(user,confirmation='1234') {
+  await user.click(screen.getByRole('button',{name:'El administrador ya habilitó el cambio'}));
+  await user.type(screen.getByLabelText('Nombre de usuario',{exact:true}),'persona');
+  await user.type(screen.getByLabelText('Nueva contraseña',{exact:true}),'1234');
+  await user.type(screen.getByLabelText('Confirmar nueva contraseña'),confirmation);
+}
+test('solicita autorización y muestra solo la nueva contraseña',async()=>{
+  const user=userEvent.setup();api.mockResolvedValue({message:'Solicitud recibida por el administrador.'});page();
+  await user.type(screen.getByLabelText('Nombre de usuario',{exact:true}),'persona');await user.click(screen.getByRole('button',{name:'Solicitar autorización'}));
+  expect(api).toHaveBeenCalledWith('/auth/password-reset/request',{method:'POST',body:{username:'persona'}});
+  expect(await screen.findByLabelText('Nueva contraseña',{exact:true})).toBeTruthy();expect(screen.queryByLabelText('Contraseña del administrador')).toBeNull();expect(screen.getByRole('status').textContent).toContain('Solicitud recibida');
+  expect(screen.queryByLabelText('Código autorizado')).toBeNull();
+});
+test('confirma contraseña sencilla sin credenciales administrativas y vuelve al login',async()=>{
+  const user=userEvent.setup();api.mockResolvedValue({message:'Contraseña actualizada.'});page();await fill(user);
+  await user.click(screen.getByRole('button',{name:'Guardar nueva contraseña'}));
+  expect((await screen.findByRole('link',{name:'Iniciar sesión'})).getAttribute('href')).toBe('/login');
+  expect(api).toHaveBeenCalledWith('/auth/password-reset/confirm',{method:'POST',body:{username:'persona',password:'1234',confirmPassword:'1234'}});
+});
+test('muestra autorización pendiente sin anunciar un cambio exitoso',async()=>{
+  const user=userEvent.setup();api.mockRejectedValue(new Error('Espera la autorización del administrador.'));page();await fill(user);
+  await user.click(screen.getByRole('button',{name:'Guardar nueva contraseña'}));
+  expect((await screen.findByRole('alert')).textContent).toContain('autorización del administrador');
+  expect(screen.getByLabelText('Nueva contraseña',{exact:true})).toBeTruthy();expect(screen.queryByRole('status')).toBeNull();
+});
+test('muestra contraseñas diferentes sin enviar el cambio',async()=>{
+  const user=userEvent.setup();page();await fill(user,'5678');
+  await user.click(screen.getByRole('button',{name:'Guardar nueva contraseña'}));expect(screen.getByRole('alert').textContent).toContain('no coinciden');expect(api).not.toHaveBeenCalled();
+});
+test('administrador habilita y revoca sin generar un código',async()=>{
+  const user=userEvent.setup(),changed=vi.fn();
+  const target={_id:'123456789012345678901234',name:'Persona',username:'persona',email:'persona@test.local',active:true,passwordResetRequestedAt:new Date().toISOString()};
+  api.mockImplementation(async(path,opts)=>opts.method==='POST'?{expiresAt:null,approvedAt:new Date().toISOString(),user:target}:{message:'Revocado'});
+  render(<PasswordResetControl user={target} onChanged={changed} onError={vi.fn()}/>);
+  expect(screen.getByText('Recuperación solicitada')).toBeTruthy();await user.click(screen.getByRole('button',{name:'Habilitar cambio'}));
+  expect(await screen.findByRole('heading',{name:'Cambio de contraseña habilitado'})).toBeTruthy();expect(changed).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole('button',{name:'Copiar código'})).toBeNull();
+  await user.click(screen.getAllByRole('button',{name:'Revocar cambio'}).at(-1));
+  await waitFor(()=>expect(screen.queryByRole('heading',{name:'Cambio de contraseña habilitado'})).toBeNull());
+  expect(api).toHaveBeenCalledWith('/users/'+target._id+'/password-reset',{method:'DELETE'});
+});
+test('cuentas inactivas y cuenta propia no permiten habilitar',()=>{
+  const {rerender}=render(<PasswordResetControl user={{_id:'1',active:false}} onChanged={vi.fn()} onError={vi.fn()}/>);
+  expect(screen.getByRole('button',{name:'Habilitar cambio'}).disabled).toBe(true);
+  rerender(<PasswordResetControl user={{_id:'1',active:true}} isSelf onChanged={vi.fn()} onError={vi.fn()}/>);
+  expect(screen.getByRole('button',{name:'Habilitar cambio'}).disabled).toBe(true);
+});

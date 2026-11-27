@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label":"NexusStock: iniciar", "type":"npm", "script":"local", "isBackground":true, "problemMatcher":[]},
+    {"label":"NexusStock: pruebas", "type":"npm", "script":"test", "problemMatcher":[], "group":"test"},
+    {"label":"NexusStock: compilar", "type":"npm", "script":"build", "problemMatcher":[], "group":"build"}
+  ]
+}

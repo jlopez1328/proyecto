@@ -3,15 +3,21 @@ on:
   issues:
     types: [opened, reopened]
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
 permissions:
   contents: read
 jobs:
   add:
     if: ${{ vars.PROJECT_URL != '' }}
     runs-on: ubuntu-latest
+    env:
+      PROJECT_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
     steps:
       - uses: actions/add-to-project@v1.0.2
+        if: ${{ env.PROJECT_TOKEN != '' }}
         with:
           project-url: ${{ vars.PROJECT_URL }}
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+      - name: Informar configuración pendiente
+        if: ${{ env.PROJECT_TOKEN == '' }}
+        run: echo 'Falta configurar ADD_TO_PROJECT_PAT. El tablero existe, pero la incorporación automática de nuevos elementos queda pendiente.'

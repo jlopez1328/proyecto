@@ -1,0 +1,8 @@
+import React from 'react';
+
+import {CheckCircle2} from 'lucide-react';
+import {money, date} from '../../modelo/api';
+
+import {Modal} from '../components/ui';
+
+export function Receipt({operation,purchase,onClose}) {return <Modal title={`${purchase?'Compra':'Venta'} ${operation.number}`} onClose={onClose} wide><div className="receipt-success"><CheckCircle2/><div><strong>Operación registrada</strong><p>Las existencias y los informes se actualizaron.</p></div></div><p>{date(operation.createdAt)} · {purchase?operation.supplier:operation.customer}</p><div className="table-wrap"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio unitario</th>{!purchase&&<th>Desc. %</th>}<th>Total línea</th></tr></thead><tbody>{operation.lines.map(l=><tr key={l.product}><td>{l.name}<small>{l.code}</small></td><td>{l.quantity}</td><td>{money(l.unitPrice)}</td>{!purchase&&<td>{l.discount}%</td>}<td>{money(l.total)}</td></tr>)}</tbody></table></div><div className="receipt-totals"><p>{purchase?'Subtotal neto':'Subtotal sin descuentos'}<strong>{money(operation.subtotal)}</strong></p>{!purchase&&<p>Descuento general<strong>{operation.discount}%</strong></p>}<p className="grand-total">Total registrado<strong>{money(operation.total)}</strong></p></div>{operation.note&&<p>Nota: {operation.note}</p>}<p className="hint">{purchase?'Los precios de venta se actualizaron al sugerido de cada producto.':'Los precios y existencias se verificaron en el servidor al confirmar. Este comprobante es interno y no es una factura electrónica.'}</p><div className="form-actions"><button className="button secondary" onClick={()=>window.print()}>Imprimir</button><button className="button" onClick={onClose}>Cerrar</button></div></Modal>;}
