@@ -1,0 +1,46 @@
+import {Router} from 'express';
+import {authenticate, allow} from '../middleware/auth.js';
+import {authLimit, resetLimit} from '../middleware/rateLimits.js';
+import * as auth from '../controlador/authController.js';
+import * as users from '../controlador/usersController.js';
+import * as products from '../controlador/productsController.js';
+import * as operations from '../controlador/operationsController.js';
+import * as reports from '../controlador/reportsController.js';
+import * as system from '../controlador/systemController.js';
+
+const router=Router();
+const admin=allow('administrador');
+const inventory=allow('comprador','administrador');
+const sales=allow('vendedor','administrador');
+
+router.get('/health', system.health);
+router.get('/openapi.json', system.schema);
+router.post('/auth/register', authLimit, auth.register);
+router.post('/auth/login', authLimit, auth.login);
+router.get('/auth/me', authenticate, auth.me);
+router.post('/auth/password-reset/request', resetLimit, auth.requestPasswordReset);
+router.post('/auth/password-reset/confirm', resetLimit, auth.confirmPasswordReset);
+router.post('/auth/logout', authenticate, auth.logout);
+router.get('/users', authenticate, admin, users.listUsers);
+router.get('/users/password-reset/requests', authenticate, admin, users.listResetRequests);
+router.post('/users', authenticate, admin, users.createUser);
+router.patch('/users/:id', authenticate, admin, users.updateUser);
+router.delete('/users/:id', authenticate, admin, users.deleteUser);
+router.post('/users/:id/restore', authenticate, admin, users.restoreUser);
+router.put('/users/:id/password', authenticate, admin, users.changePassword);
+router.post('/users/:id/password-reset', authenticate, admin, users.enablePasswordReset);
+router.delete('/users/:id/password-reset', authenticate, admin, users.revokePasswordReset);
+router.get('/catalog', authenticate, sales, products.catalog);
+router.get('/products', authenticate, inventory, products.list);
+router.post('/products', authenticate, inventory, products.create);
+router.patch('/products/:id', authenticate, inventory, products.update);
+router.delete('/products/:id', authenticate, inventory, products.archive);
+router.post('/products/:id/damage', authenticate, inventory, products.damage);
+router.post('/sales', authenticate, sales, operations.createSale);
+router.post('/purchases', authenticate, inventory, operations.createPurchase);
+router.get('/sales', authenticate, sales, operations.saleHistory);
+router.get('/purchases', authenticate, inventory, operations.purchaseHistory);
+router.get('/movements', authenticate, inventory, operations.movements);
+router.get('/reports', authenticate, reports.reports);
+
+export default router;

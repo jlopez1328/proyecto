@@ -13,6 +13,9 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: proyecto_1
     timeout-minutes: 15
     env:
       NODE_ENV: test
@@ -23,6 +26,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: proyecto_1/package-lock.json
       - uses: actions/cache@v4
         with:
           path: ~/.cache/mongodb-binaries
@@ -34,5 +38,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: nexusstock-frontend
-          path: frontend/dist
+          path: proyecto_1/frontend/dist
           retention-days: 7

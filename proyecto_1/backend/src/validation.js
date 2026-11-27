@@ -1,0 +1,38 @@
+import { z } from 'zod';
+import { usernamePattern } from './usernames.js';
+const text = max => z.string().trim().min(1).max(max);
+const price = z.number().finite().min(0).max(1000000000).refine(n => Math.abs(n * 100 - Math.round(n * 100)) < 0.0001, 'Usa máximo dos decimales');
+const percent = z.number().finite().min(0).max(100);
+const quantity = z.number().int().min(1).max(1000000);
+const id = z.string().regex(/^[a-f\d]{24}$/i, 'Identificador inválido');
+export const roles = z.enum(['vendedor', 'comprador', 'administrador']);
+export const usernameInput = z.string().trim().min(3).max(32).transform(s => s.toLowerCase()).pipe(z.string().regex(usernamePattern, 'Usa letras, números, punto, guion o guion bajo; sin espacios ni @'));
+const contactEmail = z.email().max(254).transform(s => s.toLowerCase());
+export const passwordInput = z.string().min(4, 'Mínimo 4 caracteres').max(12, 'Máximo 12 caracteres');
+// Existing longer passwords remain usable until their owners choose a new one.
+export const credentials = z.object({username: usernameInput, password: z.string().min(4).max(72).refine(s => Buffer.byteLength(s) <= 72, 'Máximo 72 bytes')}).strict();
+export const registration = credentials.extend({password: passwordInput, name: text(100), email: contactEmail});
+export const resetRequest = z.object({username: usernameInput}).strict();
+export const resetPassword = resetRequest.extend({password: passwordInput, confirmPassword: passwordInput}).strict().refine(data => data.password === data.confirmPassword, {message: 'Las contraseñas no coinciden', path: ['confirmPassword']});
+export const passwordChange = z.object({password:passwordInput, confirmPassword:passwordInput}).strict().refine(data=>data.password===data.confirmPassword,{message:'Las contraseñas no coinciden',path:['confirmPassword']});
+export const userCreation = registration.extend({role: roles});
+export const productInput = z.object({name: text(160), category: text(80).default('General'), netPrice: price, vat: percent.default(19), tax: percent.default(0), margin: z.number().min(0).max(1000).default(30), salePrice: price.optional(), minStock: z.number().int().min(0).max(1000000).default(5)}).strict();
+const uniqueLines = lines => new Set(lines.map(l => l.product)).size === lines.length;
+export const productCreation = productInput.extend({initialStock:z.number().int().min(0).max(1000000000).default(0)});
+export const productUpdate = productInput.extend({
+  stock:z.number().int().min(0).max(1000000000).optional(),
+  expectedStock:z.number().int().min(0).max(1000000000).optional(),
+  adjustmentReason:text(500).optional()
+}).superRefine((data,ctx)=>{
+  if((data.stock===undefined)!==(data.expectedStock===undefined))ctx.addIssue({code:'custom',path:['stock'],message:'El ajuste requiere cantidad y cantidad anterior.'});
+  if(data.adjustmentReason&&data.stock===undefined)ctx.addIssue({code:'custom',path:['adjustmentReason'],message:'El motivo requiere un ajuste de cantidad.'});
+});
+const base = {requestId: z.uuid(), note: z.string().trim().max(500).default('')};
+export const saleInput = z.object({...base, customer: text(160).default('Consumidor final'), discount: percent.default(0), lines: z.array(z.object({product: id, quantity, discount: percent.default(0)}).strict()).min(1).max(100).refine(uniqueLines, 'No repitas productos')}).strict();
+export const purchaseInput = z.object({...base, supplier: text(160), lines: z.array(z.object({product: id, quantity, netPrice: price, vat: percent, tax: percent, margin: z.number().min(0).max(1000)}).strict()).min(1).max(100).refine(uniqueLines, 'No repitas productos')}).strict();
+export const damageInput = z.object({quantity, reason: text(500), requestId: z.uuid()}).strict();
+export const userUpdate = z.object({username: usernameInput.optional(), role: roles, active: z.boolean()}).strict();
+export const parseId = value => id.parse(value);
+export const listQuery = z.object({search: z.string().trim().max(160).default(''), page: z.coerce.number().int().min(1).max(100000).default(1), limit: z.coerce.number().int().min(1).max(100).default(20)});
+export const userListQuery = listQuery.extend({archived:z.enum(['true','false']).default('false')});
+export const monthQuery = z.object({year: z.coerce.number().int().min(2000).max(2100).default(new Date().getUTCFullYear())});
